@@ -1,0 +1,3 @@
+[submodule "arcle/arcs/ARC"]
+	path = arcle/arcs/ARC
+	url = https://github.com/fchollet/ARC
