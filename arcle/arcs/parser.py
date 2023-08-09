@@ -1,7 +1,7 @@
 import json
 import numpy as np
-import glob
-from typing import (Union, Any)
+import glob,os
+from typing import (Union, Any,Tuple,List)
 
 class ARCParser:
     
@@ -13,7 +13,7 @@ class ARCParser:
         
         match arc_data:
             case 'arc':
-                self.data_path = './ARC/data'
+                self.data_path = os.path.join(os.path.dirname(__file__),'ARC/data')
             case _:
                 raise ValueError(f'No dataset named {arc_data}.')
     
@@ -21,14 +21,14 @@ class ARCParser:
         path = self.data_path
         
         if train:
-            path+='/training'
+            path = os.path.join(path,'training')
         else:
-            path+='/evaluation'
-        path+='/*.json'
+            path = os.path.join(path,'evaluation')
+        path = os.path.join(path,'*.json')
         self._internal_path = path 
         self._pathlist = glob.glob(path)
         self._pathlist.sort()
-        
+
         train_input = []
         train_output = []
         test_input = []
@@ -59,9 +59,7 @@ class ARCParser:
         self._test_input = test_input 
         self._test_output = test_output 
 
-        print(max([len(l) for l in self._test_output]))
-
-    def pick_ARC(self, data_index: int = -1):
+    def pick_ARC(self, data_index: int = -1) -> Tuple[List[np.ndarray],List[np.ndarray],List[np.ndarray],List[np.ndarray]]:
 
         assert self._train_input is not None, 'Call load_ARC first.'
 
