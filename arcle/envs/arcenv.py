@@ -2,8 +2,8 @@ import numpy as np
 import gymnasium as gym
 import pygame as pg
 from gymnasium import spaces,utils
-from ..arcs.parser import ARCParser
-from typing import Dict,Optional,Union, Callable,List
+from ..arcs import MiniARCLoader, ARCLoader
+from typing import Dict,Optional,Union,Callable,List
 import pygame as pg
 
 class ArcEnv(gym.Env):
@@ -18,18 +18,17 @@ class ArcEnv(gym.Env):
 
         self.parser = parser
         self.window_size = window_size
-        self.grid_size = grid_size 
         self.colors = colors
         self.terminated = False
+        self.H, self.W = grid_size
 
         if parser is None:
-            self.parser = ARCParser()
-            self.parser.load_ARC(train=train)
+            self.parser = ARCLoader(train=train)
 
         self.observation_space = spaces.Dict(
             {
                 "output": spaces.Box(0,colors,grid_size,dtype=np.uint8),
-                "output_dim": spaces.Tuple((spaces.Discrete(30,start=1),spaces.Discrete(30,start=1)))
+                "output_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1)))
             }
         )
         self.action_space = spaces.Dict(
@@ -100,15 +99,15 @@ class ArcEnv(gym.Env):
             adaptation = options['adaptation']
         self.adaptation = adaptation
 
-        exi,exo,ti,to = self.parser.pick_ARC(data_index=prob_id)
+        exi,exo,ti,to, desc = self.parser.pick(data_index=prob_id)
 
         if adaptation:
             subTaskIndex = np.random.randint(0,len(exi)) if sub_id <0 else sub_id
             isize = exi[subTaskIndex].shape
             osize = exo[subTaskIndex].shape
 
-            self._input = np.pad(exi[subTaskIndex].copy(), [(0, 30-isize[0]),(0, 30-isize[1])],constant_values=0)
-            self._output = np.pad(exi[subTaskIndex].copy(), [(0, 30-isize[0]),(0, 30-isize[1])],constant_values=0)
+            self._input = np.pad(exi[subTaskIndex].copy(), [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0)
+            self._output = np.pad(exi[subTaskIndex].copy(), [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0)
             self._output_dim = exi[subTaskIndex].shape
             self._answer = exo[subTaskIndex].copy()
         else:
@@ -116,11 +115,11 @@ class ArcEnv(gym.Env):
             isize = ti[subTaskIndex].shape
             osize = to[subTaskIndex].shape
 
-            self._input = np.pad(ti[subTaskIndex].copy(), [(0, 30-isize[0]),(0, 30-isize[1])],constant_values=0)
-            self._output = np.pad(ti[subTaskIndex].copy(), [(0, 30-isize[0]),(0, 30-isize[1])],constant_values=0)
+            self._input = np.pad(ti[subTaskIndex].copy(), [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0)
+            self._output = np.pad(ti[subTaskIndex].copy(), [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0)
             self._output_dim = ti[subTaskIndex].shape
             self._answer = to[subTaskIndex].copy()
-        
+        self._description = desc
         self._action_steps = 0
 
         obs = self.get_obs()
@@ -166,7 +165,8 @@ class ArcEnv(gym.Env):
             print('\033[2J',end='')
 
         if self.render_mode == "ansi":
-            print('\033[32A',end='')
+            print(f'\033[K\033[{self.H+3}A',end='')
+            print('Problem Description: ',self._description)
             for i,dd in enumerate(self._output):
                 for j,d in enumerate(dd):
                     if i >= self._output_dim[0] or j>= self._output_dim[1]:
@@ -174,6 +174,31 @@ class ArcEnv(gym.Env):
                     else:
                         print("\033[48;5;"+str(self.ansi256arc[d])+"m  ",end='')
                 print('\033[0m')
-            print('Dimension : '+ str(self._output_dim),'      ')
-            print('Action : ' + str(self.action_names[self._last_action['operation']] if self._last_action is not None else '') + '      ')
+            print('\033[KDimension : '+ str(self._output_dim))
+            print('\033[KAction : ' + str(self.action_names[self._last_action['operation']] if self._last_action is not None else ''))
 
+class MiniArcEnv(ArcEnv):
+    
+    def __init__(self, render_mode=None, colors=10, window_size=(1024, 512)):
+        super().__init__(render_mode, MiniARCLoader(), True, (5,5), colors, window_size)
+
+        self.action_space = spaces.Dict(
+            {
+                "selection": spaces.MultiBinary((5,5)), # selection Mask
+                "operation": spaces.Discrete(colors + 1)  # Color(10) +  Submit
+            }
+        )
+        self.action_names = ['Color0', 'Color1','Color2','Color3','Color4','Color5','Color6','Color7','Color8','Color9', 'Submit']
+        
+        def color_grid(color):
+            def colors(selection) :
+                self._output = np.ma.array(self._output,mask=selection).filled(fill_value=color)
+            return colors
+        
+        
+        def submit(selection):
+            self.terminated = True
+            
+
+        self.actions: List[Callable] = [ color_grid(c) for c in range(10) ]
+        self.actions.append( submit )
