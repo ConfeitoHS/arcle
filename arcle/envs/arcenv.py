@@ -147,7 +147,7 @@ class ArcEnv(gym.Env):
         if self.render_mode =='ansi':
             self._render_step()
 
-        return obs,reward, terminated, False, info
+        return obs, reward, terminated, False, info
     
     def render(self):
         if self.render_mode == "rgb_array":

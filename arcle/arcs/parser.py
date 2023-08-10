@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import glob,os
-from typing import (Union, Any,Tuple,List)
+from typing import (Union, Any, Tuple, List)
 
 class ARCParser:
     
