@@ -8,8 +8,8 @@ from abc import abstractmethod, ABCMeta
 from typing import Dict,Optional,Union,Callable,List,TypeAlias, Tuple, SupportsFloat, SupportsInt, SupportsIndex, Any
 from numpy.typing import NDArray
 
-from arcle.arcs import Loader
-from ..arcs import MiniARCLoader, ARCLoader, Loader
+from arcle.loaders import Loader
+from ..loaders import MiniARCLoader, ARCLoader, Loader
 
 class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     """

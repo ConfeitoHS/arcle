@@ -1,0 +1,40 @@
+[project]
+name = "arcle"
+version = "0.1.0"
+authors = [
+    {name = "Hosung Lee", email="confeitohs@gmail.com"},
+]
+description = "An ARC Learning Environment built on Gymnasium"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.urls]
+"Homepage" = "https://github.com/ConfeitoHS/arcle"
+"Bug Tracker" = "https://github.com/ConfeitoHS/arcle/issues"
+
+
+[tool.poetry]
+name = "arcle"
+version = "0.1.0"
+description = "An ARC Learning Environment built on Gymnasium"
+authors = ["Hosung Lee <confeitohs@gmail.com>"]
+readme = "README.md"
+license = "Apache Licence 2.0"
+packages = [{include = "arcle"}]
+exclude = ["arcle/arcs"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 1 - Planning",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+pygame = "^2.5.1"
+gymnasium = "^0.29.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
