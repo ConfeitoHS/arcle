@@ -11,7 +11,7 @@ obs, info = env.reset()
 for _ in range(1000):
     sel = np.zeros((5,5),dtype=np.uint8)
     
-    sel[np.random.randint(0,obs['output_dim'][0]),np.random.randint(0,obs['output_dim'][1])] = 1
+    sel[np.random.randint(0,5),np.random.randint(0,5)] = 1
     op = env.action_space['operation'].sample()
     
     action = {'selection': sel, 'operation': op}
@@ -20,6 +20,6 @@ for _ in range(1000):
 
     if term or trunc:
         obs, info = env.reset()
-    time.sleep(0.3)
+    time.sleep(0.1)
 
 env.close()
