@@ -1,6 +1,0 @@
-[submodule "arcle/arcs/Mini-ARC"]
-	path = arcle/arcs/Mini-ARC
-	url = https://github.com/KSB21ST/Mini-ARC
-[submodule "arcle/arcs/ARC"]
-	path = arcle/arcs/ARC
-	url = https://github.com/fchollet/ARC
