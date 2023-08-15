@@ -21,7 +21,7 @@ authors = ["Hosung Lee <confeitohs@gmail.com>"]
 readme = "README.md"
 license = "Apache-2.0"
 packages = [{include = "arcle"}]
-exclude = ["arcle/arcs"]
+exclude = ["arcle/arcs/flask", "arcle/arcs/server"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Development Status :: 1 - Planning",
