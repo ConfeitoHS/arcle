@@ -11,7 +11,7 @@ obs, info = env.reset()
 for _ in range(1000):
     sel = np.zeros((30,30),dtype=np.uint8)
     
-    sel[np.random.randint(0,obs['output_dim'][0]),np.random.randint(0,obs['output_dim'][1])] = 1
+    sel[np.random.randint(0,obs['grid_dim'][0]),np.random.randint(0,obs['grid_dim'][1])] = 1
     op = env.action_space['operation'].sample()
     
     action = {'selection': sel, 'operation': op}

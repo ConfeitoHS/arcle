@@ -23,9 +23,12 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     truncated: bool = False
 
     # internal states
-    current_grid: NDArray | None = None
-    current_grid_dim: Tuple[SupportsIndex,SupportsIndex] | None = None
+    grid: NDArray | None = None  
+    ''' You can freely add more observable internal states, but do not remove `grid` and `grid_dim`.'''
+    grid_dim: Tuple[SupportsIndex,SupportsIndex] | None = None
+    '''You can freely add more observable internal states, but do not remove `grid` and `grid_dim`.'''
     current_obs: ObsType | None = None
+    # Action Histories
     last_action: ActType | None = None
     last_action_op : SupportsIndex | None = None  # action index of DSLs
     last_reward: SupportsFloat = 0
@@ -142,8 +145,8 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     @abstractmethod
     def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
         isize = initial_grid.shape
-        self.current_grid = np.pad(initial_grid, [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0)
-        self.current_grid_dim = isize
+        self.grid = np.pad(initial_grid, [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0)
+        self.grid_dim = isize
         self.current_obs = None
 
     def reward(self) -> SupportsFloat:
@@ -171,8 +174,8 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         print(f'\033[{self.H+2}A\033[K', end='')
         print('Problem Description: ',self.description)
 
-        grid = self.current_grid
-        grid_dim = self.current_grid_dim
+        grid = self.grid
+        grid_dim = self.grid_dim
 
         for i,dd in enumerate(grid):
             for j,d in enumerate(dd):
@@ -196,8 +199,8 @@ class ARCEnv(AbstractARCEnv):
     def create_observation_space(self):
         return spaces.Dict(
             {
-                "output": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "output_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1)))
+                "grid": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
+                "grid_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1)))
             }
         )
     
@@ -215,12 +218,12 @@ class ARCEnv(AbstractARCEnv):
 
         def color_grid(color):
             def colors(cls: AbstractARCEnv, action) :
-                cls.current_grid = np.ma.array(cls.current_grid, mask=action['selection']).filled(fill_value=color)
+                cls.grid = np.ma.array(cls.grid, mask=action['selection']).filled(fill_value=color)
             colors.__name__ = 'color_'+str(color)
             return colors
         
         def resize_to_answer(cls: AbstractARCEnv, action):
-            cls.current_grid_dim = cls.answer.shape
+            cls.grid_dim = cls.answer.shape
         
         acts = [ color_grid(i)  for i in range(10)  ]
         acts.append(resize_to_answer)
@@ -234,8 +237,8 @@ class ARCEnv(AbstractARCEnv):
 
     def get_observation(self) -> ObsType:
         return {
-            "output": self.current_grid,
-            "output_dim": self.current_grid_dim
+            "grid": self.grid,
+            "grid_dim": self.grid_dim
         }
     
     def get_info(self) -> Dict:
@@ -244,9 +247,9 @@ class ARCEnv(AbstractARCEnv):
         }
 
     def reward(self) -> SupportsFloat:
-        if self.current_grid_dim == self.answer.shape:
+        if self.grid_dim == self.answer.shape:
             h,w = self.answer.shape
-            if np.all(self.current_grid[0:h, 0:w] == self.answer):
+            if np.all(self.grid[0:h, 0:w] == self.answer):
                 return 1
         return 0
     
@@ -289,7 +292,7 @@ class MiniARCEnv(AbstractARCEnv):
 
         def color_grid(color):
             def colors(cls: AbstractARCEnv, action) :
-                cls.current_grid = np.ma.array(cls.current_grid, mask=action['selection']).filled(fill_value=color)
+                cls.grid = np.ma.array(cls.grid, mask=action['selection']).filled(fill_value=color)
             colors.__name__ = 'color_'+str(color)
             return colors
         
@@ -303,7 +306,7 @@ class MiniARCEnv(AbstractARCEnv):
         self.current_obs = self.get_observation()
 
     def get_observation(self) -> ObsType:
-        return self.current_grid
+        return self.grid
     
     def get_info(self) -> Dict:
         return {
@@ -311,7 +314,7 @@ class MiniARCEnv(AbstractARCEnv):
         }
 
     def reward(self) -> SupportsFloat:
-        if np.all(self.current_grid == self.answer):
+        if np.all(self.grid == self.answer):
             return 1
         return 0
     
