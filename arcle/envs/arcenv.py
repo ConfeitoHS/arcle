@@ -171,8 +171,9 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             self.rendering = True
             print('\033[2J',end='')
 
-        print(f'\033[{self.H+2}A\033[K', end='')
-        print('Problem Description: ',self.description)
+        print(f'\033[{self.H+3}A\033[K', end='')
+        print('Problem Description:')
+        print(self.description, '\033[K')
 
         grid = self.grid
         grid_dim = self.grid_dim

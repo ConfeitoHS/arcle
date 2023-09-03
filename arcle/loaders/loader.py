@@ -153,7 +153,7 @@ class MiniARCLoader(Loader):
                     eo.append(np.array(d['output'],dtype=np.uint8))
 
                 fns = os.path.basename(fp.name).split('_')
-                desc = {'id': fns[-1].split('.')[-1], 'description': ' '.join(fns[0:-1]).strip() }
+                desc = {'id': fns[-1].split('.')[-2], 'description': ' '.join(fns[0:-1]).strip() }
 
                 dat.append((ti,to,ei,eo,desc))
                 
