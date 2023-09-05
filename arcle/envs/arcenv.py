@@ -8,7 +8,6 @@ from abc import abstractmethod, ABCMeta
 from typing import Dict,Optional,Union,Callable,List,TypeAlias, Tuple, SupportsFloat, SupportsInt, SupportsIndex, Any
 from numpy.typing import NDArray
 
-from arcle.loaders import Loader
 from ..loaders import MiniARCLoader, ARCLoader, Loader
 
 class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
@@ -61,13 +60,13 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         self.clock = None # Only for render_mode='human'
         self.rendering = None  # Current rendering obj: PyGame window when render_mode='human', or True when render_mode='ansi'
         
+        # Assign action functions / names
+        self.actions = self.create_actions()
+        actcnt = len(self.actions)
 
         # Create obs / action spaces
         self.observation_space = self.create_observation_space()
-        self.action_space = self.create_action_space()
-
-        # Assign action functions / names
-        self.actions = self.create_actions()
+        self.action_space = self.create_action_space(actcnt+1)
 
         def submit(cls: AbstractARCEnv, action, *args):
             cls.terminated = True
@@ -127,7 +126,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def create_action_space(self) -> spaces.Space:
+    def create_action_space(self, action_count) -> spaces.Space:
         pass
 
     @abstractmethod
@@ -192,7 +191,6 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         print('Action : ' + str(self.action_names[self.last_action_op] if self.last_action_op is not None else '') , end=' ')
         print('Reward : ' + str(self.last_reward)+ '\033[K')
 
-
 class ARCEnv(AbstractARCEnv):
     def __init__(self, render_mode: str | None = None, train:bool=True, render_size: Tuple[SupportsInt, SupportsInt] | None = None) -> None:
         super().__init__(ARCLoader(train=train), (30,30), 10, render_mode, render_size)
@@ -205,11 +203,11 @@ class ARCEnv(AbstractARCEnv):
             }
         )
     
-    def create_action_space(self) -> Any:
+    def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
                 "selection": spaces.MultiBinary((self.H,self.W)), # selection Mask
-                "operation": spaces.Discrete(self.colors + 1 + 1)  # Color(10) + ResizeToAnswer + Submit
+                "operation": spaces.Discrete(action_count)  # Color(10) + ResizeToAnswer + Submit
             }
         )
     
@@ -279,11 +277,11 @@ class MiniARCEnv(AbstractARCEnv):
     def create_observation_space(self):
         return spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8)
     
-    def create_action_space(self) -> Any:
+    def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
                 "selection": spaces.MultiBinary((self.H,self.W)), # selection Mask
-                "operation": spaces.Discrete(self.colors + 1)  # Color(10) + Submit
+                "operation": spaces.Discrete(action_count)  # Color(10) + Submit
             }
         )
     
