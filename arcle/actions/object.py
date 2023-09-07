@@ -183,7 +183,7 @@ def gen_rotate(k=1):
             cx = (xmax + xmin) *0.5
             cy = (ymax + ymin) *0.5
             x,y = cls.objsel_coord
-            cls.objsel_coord = ( int(round(cx-cy+y)), int(round(cy-cx+x))) #left-top corner will be diagonally swapped
+            cls.objsel_coord = ( int(np.floor(cx-cy+y)), int(np.floor(cy-cx+x))) #left-top corner will be diagonally swapped
 
         else: # ill-posed rotation. Manually setted
             cx = (xmax + xmin) *0.5
@@ -193,7 +193,7 @@ def gen_rotate(k=1):
             mod = 1-cls.objsel_rot%2
             mx = min(  cx+sig*(cy-ymin) , cx+sig*(cy-ymax) )+mod
             my = min(  cy-sig*(cx-xmin) , cy-sig*(cx-xmax) )+mod
-            cls.objsel_coord = (int(mx),int(my))
+            cls.objsel_coord = (int(np.floor(mx)),int(np.floor(my)))
         
         cls.objsel = np.rot90(cls.objsel, k=k)
         cls.objsel_area = np.rot90(cls.objsel_area, k=k)

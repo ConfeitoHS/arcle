@@ -71,7 +71,7 @@ class O2ARCv2Env(AbstractARCEnv):
         
         # clipboard ops (3)
         acts.append(reset_sel(gen_copy("I"))) # reset selection since it is from input grid         # 28
-        acts.append(keep_sel(gen_copy("O"))) # do not reset since it is selected from output grid   # 29
+        acts.append(reset_sel(gen_copy("O"))) # do not reset since it is selected from output grid   # 29
         acts.append(reset_sel(Paste))                                   # 30
 
         # critical ops (3)
