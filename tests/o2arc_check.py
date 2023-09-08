@@ -109,7 +109,7 @@ with open('tests/test_info.pickle', 'rb') as fp:
     traces_info:List = pickle.load(fp)
 
     
-render_mode = None#  'ansi'
+render_mode =   'ansi'
 
 arcenv = gym.make('ARCLE/O2ARCv2Env-v0',render_mode=render_mode,data_loader= ARCLoader(), max_grid_size=(30,30), colors = 10, max_episode_steps=None)
 minienv = gym.make('ARCLE/O2ARCv2Env-v0',render_mode=render_mode, data_loader=MiniARCLoader(), max_grid_size=(30,30), colors = 10, max_episode_steps=None)
