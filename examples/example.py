@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 
-env = gym.make('ARCLE/ArcEnv-v0',render_mode='ansi')
+env = gym.make('ARCLE/ARCEnv-v0',render_mode='ansi')
 
 obs, info = env.reset()
 

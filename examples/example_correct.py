@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 
-env = gym.make('ARCLE/ArcEnv-v0',render_mode='ansi')
+env = gym.make('ARCLE/ARCEnv-v0',render_mode='ansi')
 
 
 
@@ -16,7 +16,7 @@ sels[2][2+1,6] = sels[2][2,6-1] = sels[2][2-1,6] = sels[2][2,6+1] = 1
 cols = [4,4,7,11]
 
 
-option = { 'prob_id': 14, 'sub_id': -1, 'adaptation': False }
+option = { 'prob_index': 14, 'adaptation': False }
 obs, info = env.reset(options=option)
 ts = 0
 for _ in range(1000):
