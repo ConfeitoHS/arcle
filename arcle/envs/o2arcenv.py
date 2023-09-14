@@ -53,7 +53,7 @@ class O2ARCv2Env(AbstractARCEnv):
             gen_color, gen_flood_fill
         )
         from ..actions.critical import (
-            CopyFromInput, ResetGrid, ResizeGrid
+            copy_from_input,reset_grid,resize_grid,crop_grid
         )
         acts = []
 
@@ -75,9 +75,9 @@ class O2ARCv2Env(AbstractARCEnv):
         acts.append(reset_sel(Paste))                                   # 30
 
         # critical ops (3)
-        acts.append(reset_sel(CopyFromInput))                           # 31 = -4
-        acts.append(reset_sel(ResetGrid))                               # 32 = -3
-        acts.append(reset_sel(ResizeGrid))                              # 33 = -2
+        acts.append(reset_sel(copy_from_input))                           # 31 = -4
+        acts.append(reset_sel(reset_grid))                               # 32 = -3
+        acts.append(reset_sel(crop_grid))                              # 33 = -2
 
         # submit op (1)                                                 # 34 = -1
 
@@ -125,7 +125,7 @@ class O2ARCv2Env(AbstractARCEnv):
     
     def step(self, action: ActType):
 
-        selection = action['selection']
+        selection = action['selection'].astype(np.bool_)
         operation = int(action['operation'])
         self.last_action_op = operation
         self.last_action = action

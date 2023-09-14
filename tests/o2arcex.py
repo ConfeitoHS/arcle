@@ -17,7 +17,7 @@ class TestLoader(Loader):
         ei = np.zeros((30,30), dtype=np.uint8)
         eo = np.zeros((30,30), dtype=np.uint8)
 
-        ti[10:20, 10:20] = np.random.randint(0,10, size=[10,10])
+        ti[0:10, 0:10] = np.random.randint(0,10, size=[10,10])
         return [([ti],[to],[ei],[eo], {'desc': "just for test"})]
 
 
@@ -27,16 +27,16 @@ obs, info = env.reset(options={  })
 valid_action = np.array([0]*35, dtype=np.int8)
 valid_action[[-1,-2,-3,-4]] = 0 # Critical
 valid_action[np.arange(10)]=0 # Colors
-valid_action[[28,29,30]] = 0 # Copy/paste
-valid_action[[20,21,22,23,24,25,26,27]] = 1
+valid_action[[28,29,30]] = [0,0,0] # Copy/paste
+valid_action[[20,21,22,23,24,25,26,27]] = 0
+valid_action[-2] = 1
+
+sels = [((1,10),(1,9)), ((1,17),(1,25)),((2,6), (2,6))]
+
 while True:
     sel = np.zeros((30,30),dtype=np.bool_)
-    if np.random.rand()<0.1:
-        xch = np.random.choice(6,size=2, replace=False)+12
-        ych = np.random.choice(6,size=2, replace=False)+12
-        xch.sort()
-        ych.sort()
-        sel[ xch[0]:xch[1]+1 , ych[0]:ych[1]+1  ] = 1
+    xch, ych = sels[env.unwrapped.action_steps]
+    sel[ xch[0]:xch[1]+1 , ych[0]:ych[1]+1  ] = 1
     
     op = env.action_space['operation'].sample(mask=valid_action)
 
@@ -47,7 +47,7 @@ while True:
     if term or trunc:
         obs, info = env.reset()
     #input('\033[F')
-    time.sleep(0.5)
+    time.sleep(1)
     
 
 env.close()
