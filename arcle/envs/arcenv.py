@@ -254,7 +254,7 @@ class ARCEnv(AbstractARCEnv):
     
     def step(self, action: ActType):
 
-        selection = action['selection']
+        selection = action['selection'].astype(np.bool_)
         operation = int(action['operation'])
         self.last_action_op = operation
         self.last_action = action
@@ -319,7 +319,7 @@ class MiniARCEnv(AbstractARCEnv):
     
     def step(self, action: ActType):
 
-        selection = action['selection']
+        selection = action['selection'].astype(np.bool_)
         operation = int(action['operation'])
         self.last_action_op = operation
         self.last_action = action

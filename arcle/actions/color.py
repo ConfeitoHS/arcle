@@ -69,6 +69,8 @@ def gen_color(color: SupportsInt) -> Callable:
     '''
     def colorf(cls: AAE, action) -> None:
         sel = action['selection']
+        if not np.any(sel):
+            return
         cls.grid = ma.array(cls.grid, mask=sel).filled(fill_value=color)
     
     colorf.__name__ = f"Color{color}"
@@ -84,7 +86,16 @@ def gen_flood_fill(color: SupportsInt) -> Callable:
     '''
 
     def floodfillf(cls: AAE, action):
-        sel = dfs_area(cls.grid,cls.grid_dim, action['selection'])
+        sel = action['selection']
+        if np.sum(sel)>1:
+            return # NOOP if two or more pixel selected
+        
+        x,y = np.unravel_index(np.argmax(sel),shape=sel.shape)
+
+        if x>=cls.grid_dim[0] or y>=cls.grid_dim[1]:
+            return # NOOP outofbound
+        
+        sel = dfs(cls.grid,cls.grid_dim,(x,y))
         cls.grid = ma.array(cls.grid, mask=sel).filled(fill_value=color)
 
     floodfillf.__name__ = f"FloodFill{color}"

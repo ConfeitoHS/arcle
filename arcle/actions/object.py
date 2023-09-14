@@ -285,9 +285,9 @@ def gen_copy(source="I"):
         cls.clip_dim = (H,W)
 
         if source == "I":
-            cls.clip[:H, :W] = np.copy(cls.input_[xmin:xmin+H, ymin:ymin+W])
+            np.copyto(cls.clip[:H, :W], cls.input_[xmin:xmin+H, ymin:ymin+W], where=np.logical_and(cls.input_[xmin:xmin+H, ymin:ymin+W]>0,sel[xmin:xmin+H, ymin:ymin+W] ))
         elif source == "O":
-            cls.clip[:H, :W] = np.copy(cls.grid[xmin:xmin+H, ymin:ymin+W])
+            np.copyto(cls.clip[:H, :W], cls.grid[xmin:xmin+H, ymin:ymin+W], where=np.logical_and(cls.grid[xmin:xmin+H, ymin:ymin+W]>0, sel[xmin:xmin+H, ymin:ymin+W]))
         
     Copy.__name__ = f"Copy_{source}"
     return Copy
@@ -315,6 +315,4 @@ def Paste(cls: O2E, action):
     
     edx = min(xmin+H, cls.H)
     edy = min(ymin+W, cls.W)
-    
-    cls.grid[xmin:edx, ymin:edy] = np.copy(cls.clip[:edx-xmin, :edy-ymin]) # paste
-
+    np.copyto(cls.grid[xmin:edx, ymin:edy], cls.clip[:edx-xmin, :edy-ymin], where=cls.clip[:edx-xmin, :edy-ymin]>0)
