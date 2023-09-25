@@ -7,6 +7,10 @@ ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for trainin
 
 ## Changelogs
 
+#### 0.2.2
+- Bug fix
+    - Default all-or-none reward now gives only when submitted. It affects to existing all environments.
+
 #### 0.2.1
 - O2ARCv2Env-v0
     - Changed `ResizeGrid` action to `CropGrid` action

@@ -246,6 +246,8 @@ class ARCEnv(AbstractARCEnv):
         }
 
     def reward(self) -> SupportsFloat:
+        if not self.terminated:
+            return 0
         if self.grid_dim == self.answer.shape:
             h,w = self.answer.shape
             if np.all(self.grid[0:h, 0:w] == self.answer):
@@ -313,6 +315,8 @@ class MiniARCEnv(AbstractARCEnv):
         }
 
     def reward(self) -> SupportsFloat:
+        if not self.terminated:
+            return 0
         if np.all(self.grid == self.answer):
             return 1
         return 0
