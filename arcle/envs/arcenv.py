@@ -5,7 +5,7 @@ from gymnasium import spaces,utils
 from gymnasium.core import ObsType, ActType
 
 from abc import abstractmethod, ABCMeta
-from typing import Dict,Optional,Union,Callable,List,TypeAlias, Tuple, SupportsFloat, SupportsInt, SupportsIndex, Any
+from typing import Dict,Optional,Union,Callable,List, Tuple, SupportsFloat, SupportsInt, SupportsIndex, Any
 from numpy.typing import NDArray
 
 from ..loaders import MiniARCLoader, ARCLoader, Loader

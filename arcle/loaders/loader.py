@@ -2,7 +2,7 @@ import json
 import numpy as np
 import glob,os
 from abc import ABCMeta,abstractmethod
-from typing import (Union, Any, Tuple, List, Dict, TypeAlias)
+from typing import (Union, Any, Tuple, List, Dict)
 from numpy.typing import NDArray
 
 class Loader(metaclass=ABCMeta):
