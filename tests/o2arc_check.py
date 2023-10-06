@@ -102,13 +102,26 @@ def action_convert(action_entry):
 
 traces = []
 traces_info = []
+
+# Not Removed Weird Traces------
 with open('tests/test.pickle', 'rb') as fp:
     traces:List = pickle.load(fp)
     
 with open('tests/test_info.pickle', 'rb') as fp:
     traces_info:List = pickle.load(fp)
 
+# Removed Weird Traces----------
+with open('tests/TestNoNan.pickle', 'rb') as fp:
+    traces:List = pickle.load(fp)
     
+with open('tests/TestNoNan_Info.pickle', 'rb') as fp:
+    traces_info:List = pickle.load(fp)
+
+new_traces = []
+new_traces_info = []
+#-------------------------------
+
+
 render_mode =None# 'ansi'
 
 arcenv = gym.make('ARCLE/O2ARCv2Env-v0',render_mode=render_mode,data_loader= ARCLoader(), max_grid_size=(30,30), colors = 10, max_episode_steps=None)
@@ -118,11 +131,13 @@ failure_trace = []
 error_trace = []
 omitted_trace = []
 tested = 0
+
 '''
 wanna_test = [235] # Interface Errors
 traces = [traces[i] for i in wanna_test]
 traces_info = [traces_info[i] for i in wanna_test]
 '''
+
 for idx, trace in enumerate(traces):
     i = 0
 
@@ -133,6 +148,8 @@ for idx, trace in enumerate(traces):
 
     obs, info = env.reset(options= {'adaptation':False, 'prob_index':findbyname(traces_info[idx][0]), 'subprob_index': traces_info[idx][1]})
     converted = []
+
+    good_trace = True
 
     omit_trace = False
     for entry in trace:
@@ -164,6 +181,7 @@ for idx, trace in enumerate(traces):
         
         except:
             error_trace.append(idx)
+            good_trace = False
             break
             
         h,w = obs['grid_dim']
@@ -172,16 +190,27 @@ for idx, trace in enumerate(traces):
             #exit()
             failure_trace.append(idx)
             #time.sleep(5)
+            good_trace = False
             break
             
         
         if term or trunc:
             break
 
+    if good_trace:
+        new_traces.append(traces[idx])
+        new_traces_info.append(traces_info[idx])
+
+
 print(f'Tested: {tested}, Passed: {(tested-len(error_trace)-len(failure_trace))/(tested)*100:.2f}%')
 print('Error traces:', error_trace)
 print('Failure traces:', failure_trace)
 print('Omitted traces:', omitted_trace)
 
-    
+""" with open('tests/TestNoNan.pickle', 'wb') as fp:
+    pickle.dump(new_traces,fp)
+
+with open('tests/TestNoNan_Info.pickle', 'wb') as fp:
+    pickle.dump(new_traces_info,fp) """
+
 env.close()
