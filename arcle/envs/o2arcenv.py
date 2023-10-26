@@ -21,7 +21,7 @@ class O2ARCv2Env(AbstractARCEnv):
     objsel: NDArray = np.zeros((30,30), dtype=np.uint8)
     objsel_area: NDArray = np.zeros((30,30), dtype=np.uint8)
     objsel_bg: NDArray = np.zeros((30,30), dtype=np.uint8)
-    objsel_coord: Tuple = ()
+    objsel_coord: Tuple = (0, 0)
     objsel_rot: SupportsInt = 0
 
     def create_observation_space(self):
@@ -31,7 +31,24 @@ class O2ARCv2Env(AbstractARCEnv):
                 "grid_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
                 "selected": spaces.MultiBinary((self.H,self.W)),
                 "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "clip_dim": spaces.Tuple((spaces.Discrete(self.H,start=0),spaces.Discrete(self.W,start=0))),
+                "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
+                "object_states":spaces.Dict({
+                    # objsel_active: is object selection mode enabled?
+                    "active": spaces.Discrete(2), 
+
+                    # objsel: original data of object shapes and colors
+                    "object": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
+                    # objsel_area: original shape of selection area, same-shaped to object_dim
+                    "object_sel":  spaces.MultiBinary((self.H,self.W)),
+                    "object_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
+                    "object_pos": spaces.Tuple((spaces.Discrete(200,start=-100),spaces.Discrete(200,start=-100))), # objsel_coord
+
+                    # objsel_bg: background separated to object, same-shaped with grid_dim
+                    "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.uint8), 
+                    
+                    # objsel_rot: rotation parity to keep rotation center
+                    "rotation_parity": spaces.Discrete(2),
+                })
             }
         )
     
@@ -95,7 +112,7 @@ class O2ARCv2Env(AbstractARCEnv):
         self.objsel = np.zeros((self.H, self.W), dtype=np.uint8)
         self.objsel_area = np.zeros((self.H, self.W), dtype=np.uint8)
         self.objsel_bg= np.zeros((self.H,self.W), dtype=np.uint8)
-        self.objsel_coord= ()
+        self.objsel_coord= (0,0)
         self.objsel_rot = 0
         
 
@@ -108,7 +125,16 @@ class O2ARCv2Env(AbstractARCEnv):
             "grid": self.grid,
             "grid_dim": self.grid_dim,
             "clip" : self.clip,
-            "clip_dim" : self.clip_dim
+            "clip_dim" : self.clip_dim,
+            "object_states": {
+                "active": int(self.objsel_active), 
+                "object": np.pad(self.objsel, pad_width=((0, self.H-self.objsel.shape[0]),(0, self.W-self.objsel.shape[1]))),
+                "object_sel": np.pad(self.objsel_area, pad_width=((0, self.H-self.objsel.shape[0]),(0, self.W-self.objsel.shape[1])),constant_values=0),
+                "object_dim": self.objsel.shape,
+                "object_pos": self.objsel_coord, 
+                "background": self.objsel_bg, 
+                "rotation_parity": self.objsel_rot,
+            }
         }
     
     def get_info(self) -> Dict:

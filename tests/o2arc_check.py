@@ -146,7 +146,7 @@ for idx, trace in enumerate(traces):
 
     obs, info = env.reset(options= {'adaptation':False, 'prob_index':findbyname(traces_info[idx][0]), 'subprob_index': traces_info[idx][1]})
     converted = []
-
+    
     good_trace = True
 
     omit_trace = False
