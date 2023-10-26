@@ -39,7 +39,7 @@ class Loader(metaclass=ABCMeta):
         pass
         
 
-    def pick(self, data_index: int | None = None, **kwargs) -> Tuple[List[NDArray],List[NDArray],List[NDArray],List[NDArray],Dict]:
+    def pick(self, data_index: int = None, **kwargs) -> Tuple[List[NDArray],List[NDArray],List[NDArray],List[NDArray],Dict]:
         '''
         Pick one problem from loaded data.
         '''

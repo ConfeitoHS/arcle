@@ -22,14 +22,15 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     truncated: bool = False
 
     # internal states
-    grid: NDArray | None = None  
+    grid: NDArray = None  
     ''' You can freely add more observable internal states, but do not remove `grid` and `grid_dim`.'''
-    grid_dim: Tuple[SupportsIndex,SupportsIndex] | None = None
+    grid_dim: Tuple[SupportsIndex,SupportsIndex] = None
     '''You can freely add more observable internal states, but do not remove `grid` and `grid_dim`.'''
-    current_obs: ObsType | None = None
+    current_obs: ObsType = None
+    
     # Action Histories
-    last_action: ActType | None = None
-    last_action_op : SupportsIndex | None = None  # action index of DSLs
+    last_action: ActType = None
+    last_action_op : SupportsIndex = None  # action index of DSLs
     last_reward: SupportsFloat = 0
     action_steps: SupportsInt = 0
     
@@ -81,8 +82,8 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         # Reset Internal States
         self.terminated = False
         self.truncated = False
-        self.last_action: ActType | None = None
-        self.last_action_op : SupportsIndex | None = None
+        self.last_action: ActType  = None
+        self.last_action_op : SupportsIndex  = None
         self.last_reward: SupportsFloat = 0
         self.action_steps: SupportsInt = 0
         
@@ -192,7 +193,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         print('Reward : ' + str(self.last_reward)+ '\033[K')
 
 class ARCEnv(AbstractARCEnv):
-    def __init__(self, render_mode: str | None = None, train:bool=True, render_size: Tuple[SupportsInt, SupportsInt] | None = None) -> None:
+    def __init__(self, render_mode: str  = None, train:bool=True, render_size: Tuple[SupportsInt, SupportsInt]  = None) -> None:
         super().__init__(ARCLoader(train=train), (30,30), 10, render_mode, render_size)
 
     def create_observation_space(self):
@@ -273,7 +274,7 @@ class ARCEnv(AbstractARCEnv):
         return obs, reward, self.terminated, self.truncated, info
 
 class MiniARCEnv(AbstractARCEnv):
-    def __init__(self, render_mode: str | None = None, render_size: Tuple[SupportsInt, SupportsInt] | None = None) -> None:
+    def __init__(self, render_mode: str  = None, render_size: Tuple[SupportsInt, SupportsInt]  = None) -> None:
         super().__init__(MiniARCLoader(), (5,5), 10, render_mode, render_size)
 
     def create_observation_space(self):

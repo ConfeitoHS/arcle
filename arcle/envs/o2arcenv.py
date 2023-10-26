@@ -12,9 +12,9 @@ from .arcenv import AbstractARCEnv
 
 class O2ARCv2Env(AbstractARCEnv):
 
-    selected : NDArray | None = None
-    clip: NDArray | None = None  
-    clip_dim: Tuple[SupportsIndex,SupportsIndex] | None = None
+    selected : NDArray  = None
+    clip: NDArray  = None  
+    clip_dim: Tuple[SupportsIndex,SupportsIndex]  = None
 
     # O2Actions
     objsel_active: bool = False

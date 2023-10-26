@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arcle"
-version = "0.2.4"
+version = "0.2.5"
 description = "An ARC Learning Environment built on Gymnasium"
 authors = ["Hosung Lee <confeitohs@gmail.com>"]
 readme = "docs/README.md"
@@ -10,7 +10,7 @@ packages = [{include = "arcle"}]
 exclude = ["arcle/arcs/flask", "arcle/arcs/server"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Development Status :: 1 - Planning",
+    "Development Status :: 2 - Pre-Alpha",
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Scientific/Engineering :: Artificial Intelligence"
 ]
@@ -21,7 +21,7 @@ classifiers = [
 
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.8"
 pygame = "^2.5.1"
 gymnasium = "^0.29.0"
 

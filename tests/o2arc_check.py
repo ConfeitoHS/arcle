@@ -22,81 +22,79 @@ def action_convert(action_entry):
     _, action, data, grid = action_entry
     sel = np.zeros((30,30), dtype=np.bool_)
     op = 0
-    match action:
-        case "CopyFromInput":
-            op = 31
-        case "ResizeGrid":
-            op = 33
-            h, w = data[0]
-            sel[:h,:w] = 1
-        case "ResetGrid":
-            op = 32
-        case "Submit":
-            op = 34
-        case "Color":
-            h, w = data[0]
-            op = data[1]
-            sel[h,w] = 1
+    if action == "CopyFromInput":
+        op = 31
+    elif action == "ResizeGrid":
+        op = 33
+        h, w = data[0]
+        sel[:h,:w] = 1
+    elif action == "ResetGrid":
+        op = 32
+    elif action == "Submit":
+        op = 34
+    elif action == "Color":
+        h, w = data[0]
+        op = data[1]
+        sel[h,w] = 1
 
-        case "Fill":
-            h0, w0 = data[0]
-            h1, w1 = data[1]
-            op = data[2]
-            sel[h0:h1+1 , w0:w1+1] = 1
+    elif action == "Fill":
+        h0, w0 = data[0]
+        h1, w1 = data[1]
+        op = data[2]
+        sel[h0:h1+1 , w0:w1+1] = 1
 
-        case "FlipX":
-            h0, w0 = data[0]
-            h1, w1 = data[1]
-            op = 27
-            sel[h0:h1+1, w0:w1+1] = 1
-        case "FlipY":
-            h0, w0 = data[0]
-            h1, w1 = data[1]
-            op = 26
-            sel[h0:h1+1, w0:w1+1] = 1
-        case "RotateCW":
-            h0, w0 = data[0]
-            h1, w1 = data[1]
-            op = 25
-            sel[h0:h1+1, w0:w1+1] = 1
-        case "RotateCCW":
-            h0, w0 = data[0]
-            h1, w1 = data[1]
-            op = 24
-            sel[h0:h1+1, w0:w1+1] = 1
-        case "Move":
-            h0, w0 = data[0]
-            h1, w1 = data[1]
-            match data[2]:
-                case 'U':
-                    op = 20
-                case 'D':
-                    op = 21
-                case 'R':
-                    op = 22
-                case 'L':
-                    op = 23
+    elif action == "FlipX":
+        h0, w0 = data[0]
+        h1, w1 = data[1]
+        op = 27
+        sel[h0:h1+1, w0:w1+1] = 1
+    elif action == "FlipY":
+        h0, w0 = data[0]
+        h1, w1 = data[1]
+        op = 26
+        sel[h0:h1+1, w0:w1+1] = 1
+    elif action == "RotateCW":
+        h0, w0 = data[0]
+        h1, w1 = data[1]
+        op = 25
+        sel[h0:h1+1, w0:w1+1] = 1
+    elif action == "RotateCCW":
+        h0, w0 = data[0]
+        h1, w1 = data[1]
+        op = 24
+        sel[h0:h1+1, w0:w1+1] = 1
+    elif action == "Move":
+        h0, w0 = data[0]
+        h1, w1 = data[1]
+        if data[2] == 'U':
+            op = 20
+        elif data[2] == 'D':
+            op = 21
+        elif data[2] == 'R':
+            op = 22
+        elif data[2] == 'L':
+            op = 23
 
-            sel[h0:h1+1, w0:w1+1] = 1
+        sel[h0:h1+1, w0:w1+1] = 1
+    
+    elif action == "Copy":
+        h0, w0 = data[0]
+        h1, w1 = data[1]
         
-        case "Copy":
-            h0, w0 = data[0]
-            h1, w1 = data[1]
-            match data[2]:
-                case 'Input Grid':
-                    op = 28
-                case 'Output Grid':
-                    op = 29
-            sel[h0:h1+1, w0:w1+1] = 1
-        case "Paste":
-            h, w = data[0]
-            op = 30
-            sel[h,w] = 1
+        if data[2] == 'Input Grid':
+            op = 28
+        elif data[2] == 'Output Grid':
+            op = 29
+        sel[h0:h1+1, w0:w1+1] = 1
+    elif action == "Paste":
+        h, w = data[0]
+        op = 30
+        sel[h,w] = 1
 
-        case "FloodFill":
-            h, w = data[0]
-            op = 10 + data[1]
-            sel[h,w] = 1
+    elif action == "FloodFill":
+        h, w = data[0]
+        op = 10 + data[1]
+        sel[h,w] = 1
 
     return op, sel
 
