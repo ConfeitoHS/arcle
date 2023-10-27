@@ -12,23 +12,30 @@ from .arcenv import AbstractARCEnv
 
 class O2ARCv2Env(AbstractARCEnv):
 
-    selected : NDArray  = None
-    clip: NDArray  = None  
-    clip_dim: Tuple[SupportsIndex,SupportsIndex]  = None
+    def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
+        super().init_observation(initial_grid, options)
+        
+        add_dict = {
+            "selected": np.zeros((self.H,self.W), dtype=np.uint8),
+            "clip" : np.zeros((self.H,self.W),dtype= np.uint8),
+            "clip_dim" : (0, 0),
+            "object_states": {
+                "active": 0, 
+                "object": np.zeros((self.H, self.W), dtype=np.uint8),
+                "object_sel": np.zeros((self.H, self.W), dtype=np.uint8),
+                "object_dim": (0,0),
+                "object_pos": (0,0), 
+                "background": np.zeros((self.H, self.W), dtype=np.uint8), 
+                "rotation_parity": 0,
+            }
+        }
 
-    # O2Actions
-    objsel_active: bool = False
-    objsel: NDArray = np.zeros((30,30), dtype=np.uint8)
-    objsel_area: NDArray = np.zeros((30,30), dtype=np.uint8)
-    objsel_bg: NDArray = np.zeros((30,30), dtype=np.uint8)
-    objsel_coord: Tuple = (0, 0)
-    objsel_rot: SupportsInt = 0
-
+        self.current_state.update(add_dict)
+    
     def create_observation_space(self):
-        return spaces.Dict(
-            {
-                "grid": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "grid_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
+        old_space = super().create_observation_space()
+
+        new_space_dict = {
                 "selected": spaces.MultiBinary((self.H,self.W)),
                 "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
                 "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
@@ -47,10 +54,14 @@ class O2ARCv2Env(AbstractARCEnv):
                     "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.uint8), 
                     
                     # objsel_rot: rotation parity to keep rotation center
-                    "rotation_parity": spaces.Discrete(2),
+                    "rotation_parity": spaces.Discrete(10),
                 })
-            }
-        )
+        }
+
+        new_space_dict.update(old_space.spaces)
+        return spaces.Dict(new_space_dict)
+        
+        
     
     def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
@@ -101,53 +112,18 @@ class O2ARCv2Env(AbstractARCEnv):
         #  20 + 8 + 3 + 3 + 1 = 35
 
         return acts
-    
-    def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
-        super().init_observation(initial_grid, options)
-        self.selected = np.zeros((self.H,self.W), dtype=np.uint8)
-        self.clip = np.zeros((self.H,self.W),dtype= np.uint8)
-        self.clip_dim = (0,0)
-        
-        self.objsel_active = False
-        self.objsel = np.zeros((self.H, self.W), dtype=np.uint8)
-        self.objsel_area = np.zeros((self.H, self.W), dtype=np.uint8)
-        self.objsel_bg= np.zeros((self.H,self.W), dtype=np.uint8)
-        self.objsel_coord= (0,0)
-        self.objsel_rot = 0
-        
 
-        self.current_obs = self.get_observation()   
-        
-
-    def get_observation(self) -> ObsType:
-        return {
-            "selected": self.selected,
-            "grid": self.grid,
-            "grid_dim": self.grid_dim,
-            "clip" : self.clip,
-            "clip_dim" : self.clip_dim,
-            "object_states": {
-                "active": int(self.objsel_active), 
-                "object": np.pad(self.objsel, pad_width=((0, self.H-self.objsel.shape[0]),(0, self.W-self.objsel.shape[1]))),
-                "object_sel": np.pad(self.objsel_area, pad_width=((0, self.H-self.objsel.shape[0]),(0, self.W-self.objsel.shape[1])),constant_values=0),
-                "object_dim": self.objsel.shape,
-                "object_pos": self.objsel_coord, 
-                "background": self.objsel_bg, 
-                "rotation_parity": self.objsel_rot,
-            }
-        }
-    
     def get_info(self) -> Dict:
         return {
             "steps": self.action_steps,
         }
 
-    def reward(self) -> SupportsFloat:
-        if not self.terminated:
+    def reward(self, state) -> SupportsFloat:
+        if not state['terminated']:
             return 0
-        if self.grid_dim == self.answer.shape:
+        if state['grid_dim'] == self.answer.shape:
             h,w = self.answer.shape
-            if np.all(self.grid[0:h, 0:w] == self.answer):
+            if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
         return 0
     
@@ -155,19 +131,24 @@ class O2ARCv2Env(AbstractARCEnv):
 
         selection = action['selection'].astype(np.bool_)
         operation = int(action['operation'])
+
+        self._transition(self.current_state, action)
         self.last_action_op = operation
         self.last_action = action
 
         # do action
-        self.actions[operation](self,action)
-        obs = self.get_observation()
-        reward = self.reward()
+        obs = self.current_state
+        reward = self.reward(self.current_state)
         self.last_reward = reward
         info = self.get_info()
         self.action_steps+=1
         self.render()
 
         return obs, reward, self.terminated, self.truncated, info
+
+    def _transition(self, state: ObsType, action: ActType) -> None:
+        operation = int(action['operation'])
+        self.actions[operation](state,action)
 
     def render_ansi(self):
         if self.rendering is None:
@@ -178,11 +159,11 @@ class O2ARCv2Env(AbstractARCEnv):
         print('Problem Description:')
         print(self.description, '\033[K')
 
-        grid = self.grid
-        grid_dim = self.grid_dim
-        sel = self.selected
-        clip = self.clip
-        clip_dim = self.clip_dim
+        grid = self.current_state['grid']
+        grid_dim = self.current_state['grid_dim']
+        sel = self.current_state['selected']
+        clip = self.current_state['clip']
+        clip_dim = self.current_state['clip_dim']
         
 
         for i in range(self.H):

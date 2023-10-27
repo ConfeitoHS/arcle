@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from typing import SupportsInt,Callable,Tuple
 from .object import _get_bbox
 
-def reset_grid(cls: AAE, action):
+def reset_grid(state, action):
     '''
     ResetGrid function that resets grid.
     
@@ -14,9 +14,9 @@ def reset_grid(cls: AAE, action):
     Class State Requirements (key: type) : (`grid`: NDArray)
     '''
     
-    cls.grid = np.zeros((cls.H, cls.W),dtype=np.uint8)
+    state['grid'][:, :] = 0
 
-def copy_from_input(cls: AAE, action):
+def copy_from_input(state, action):
     '''
     Copy input grid and puts into output grid.
     
@@ -24,13 +24,15 @@ def copy_from_input(cls: AAE, action):
 
     Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: Tuple), 
     '''
-    cpi = np.copy(cls.input_).astype(np.uint8)
-    inp_shape = cpi.shape
-    cls.grid_dim = inp_shape
-    cls.grid[:, :] = 0
-    cls.grid[:inp_shape[0], :inp_shape[1]] = cpi
+    input_h, input_w = state['input_dim']
+    inp_shape = (input_h, input_w)
+    cpi = np.copy(state['input'][:input_h, :input_w]).astype(np.uint8)
     
-def resize_grid(cls: AAE, action):
+    state['grid_dim'] = inp_shape
+    state['grid'][:, :] = 0
+    state['grid'][:input_h, :input_w] = cpi
+    
+def resize_grid(state, action):
     '''
     Resize Grid and Reset.
     
@@ -44,10 +46,10 @@ def resize_grid(cls: AAE, action):
     xmin,xmax,ymin,ymax = _get_bbox(action['selection'])
     H = xmax-xmin+1
     W = ymax-ymin+1
-    cls.grid[:, :] = 0
-    cls.grid_dim = (H,W)
+    state['grid'][:, :] = 0
+    state['grid_dim'] = (H,W)
     
-def crop_grid(cls: AAE, action):
+def crop_grid(state, action):
     '''
     Crop Grid by selection bounding box.
     
@@ -62,8 +64,8 @@ def crop_grid(cls: AAE, action):
     H = xmax-xmin+1
     W = ymax-ymin+1
     patch = np.zeros((H,W),dtype=np.uint8)
-    np.copyto(dst=patch, src=cls.grid[xmin:xmax+1, ymin:ymax+1], where= np.logical_and(action['selection'][xmin:xmax+1, ymin:ymax+1],cls.grid[xmin:xmax+1, ymin:ymax+1]))
-    cls.grid[:,:]=0
-    cls.grid[0:H, 0:W] = patch
-    cls.grid_dim = (H,W)
+    np.copyto(dst=patch, src=state['grid'][xmin:xmax+1, ymin:ymax+1], where= np.logical_and(action['selection'][xmin:xmax+1, ymin:ymax+1],state['grid'][xmin:xmax+1, ymin:ymax+1]))
+    state['grid'][:,:]=0
+    #state['grid'][0:H, 0:W] = patch # comment when test
+    state['grid_dim'] = (H,W)
     

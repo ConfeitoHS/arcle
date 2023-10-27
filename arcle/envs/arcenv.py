@@ -20,13 +20,8 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
 
     terminated: bool = False
     truncated: bool = False
-
-    # internal states
-    grid: NDArray = None  
-    ''' You can freely add more observable internal states, but do not remove `grid` and `grid_dim`.'''
-    grid_dim: Tuple[SupportsIndex,SupportsIndex] = None
-    '''You can freely add more observable internal states, but do not remove `grid` and `grid_dim`.'''
-    current_obs: ObsType = None
+    
+    current_state: ObsType = None
     
     # Action Histories
     last_action: ActType = None
@@ -38,12 +33,12 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     input_ : NDArray = None
     answer : NDArray = None
     description: Dict = None
-    
 
     def __init__(self, 
                  data_loader: Loader,  
                  max_grid_size: Tuple[SupportsInt,SupportsInt], 
-                 colors : SupportsInt, 
+                 colors : SupportsInt,
+                 max_trial: SupportsInt = 3,
                  render_mode: Optional[str] = None, 
                  render_size: Optional[Tuple[SupportsInt,SupportsInt]] = None) -> None:
         
@@ -53,6 +48,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
 
         self.H, self.W = max_grid_size
         self.colors = colors
+        self.max_trial = max_trial
         self._action_steps = 0
 
         # Render Related
@@ -69,8 +65,10 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         self.observation_space = self.create_observation_space()
         self.action_space = self.create_action_space(actcnt+1)
 
-        def submit(cls: AbstractARCEnv, action, *args):
-            cls.terminated = True
+        def submit(state, action, **kwargs):
+            state['trials_remain'] -=1
+            if state['trials_remain'] == 0:
+                state['terminated'] = 1
         
         self.actions.append(submit)
         self.action_names = [ ''.join(map(str.capitalize,ac.__name__.split('_')))  for ac in self.actions]
@@ -117,25 +115,30 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         if self.render_mode:
             self.render()
 
-        obs = self.get_observation()
+        obs = self.current_state
         info = self.get_info()
 
         return obs, info
         
     @abstractmethod
-    def create_observation_space(self) -> spaces.Space:
-        pass
+    def create_observation_space(self) -> spaces.Dict:
+        return spaces.Dict({
+            "input": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
+            "input_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
+
+            "trials_remain": spaces.Discrete(self.max_trial+1, start=0),
+            "terminated": spaces.Discrete(2),
+
+            "grid": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
+            "grid_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
+        })
 
     @abstractmethod
-    def create_action_space(self, action_count) -> spaces.Space:
+    def create_action_space(self, action_count) -> spaces.Dict: 
         pass
 
     @abstractmethod
     def create_actions(self) -> List[Callable]:
-        pass
-
-    @abstractmethod
-    def get_observation(self) -> ObsType:
         pass
 
     @abstractmethod
@@ -145,9 +148,16 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     @abstractmethod
     def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
         isize = initial_grid.shape
-        self.grid = np.pad(initial_grid, [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0)
-        self.grid_dim = isize
-        self.current_obs = None
+        self.current_state = {
+            "trials_remain": self.max_trial,
+            "terminated": self.terminated,
+
+            "input": np.pad(self.input_, [(0, self.H-isize[0]),(0, self.W-isize[1])], constant_values=0),
+            "input_dim": self.input_.shape,
+
+            "grid": np.pad(initial_grid, [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0),
+            "grid_dim": isize
+        }
 
     def reward(self) -> SupportsFloat:
         return 0
@@ -233,7 +243,7 @@ class ARCEnv(AbstractARCEnv):
     def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
         super().init_observation(initial_grid, options)
 
-        self.current_obs = self.get_observation()
+        self.current_state = self.get_observation()
 
     def get_observation(self) -> ObsType:
         return {
@@ -305,7 +315,7 @@ class MiniARCEnv(AbstractARCEnv):
     def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
         super().init_observation(initial_grid, options)
 
-        self.current_obs = self.get_observation()
+        self.current_state = self.get_observation()
 
     def get_observation(self) -> ObsType:
         return self.grid

@@ -120,7 +120,7 @@ new_traces_info = []
 #-------------------------------
 
 
-render_mode =None# 'ansi'
+render_mode = None #'ansi'
 
 arcenv = gym.make('ARCLE/O2ARCv2Env-v0',render_mode=render_mode,data_loader= ARCLoader(), max_grid_size=(30,30), colors = 10, max_episode_steps=None)
 minienv = gym.make('ARCLE/O2ARCv2Env-v0',render_mode=render_mode, data_loader=MiniARCLoader(), max_grid_size=(30,30), colors = 10, max_episode_steps=None)
@@ -131,7 +131,7 @@ omitted_trace = []
 tested = 0
 
 '''
-wanna_test = [235] # Interface Errors
+wanna_test = [299, 922, 1630, 1910] 
 traces = [traces[i] for i in wanna_test]
 traces_info = [traces_info[i] for i in wanna_test]
 '''
@@ -163,7 +163,6 @@ for idx, trace in enumerate(traces):
 
     tested+=1
     for i in range(len(converted)):
-
         op, sel = converted[i]
         h,w = obs['grid_dim']
 
@@ -176,8 +175,8 @@ for idx, trace in enumerate(traces):
         #print('\033[F', end='')
         try:
             obs,reward,term,trunc,info = env.step(action)
-        
-        except:
+        except Exception as e:
+            print(e.with_traceback())
             error_trace.append(idx)
             good_trace = False
             break
@@ -186,8 +185,12 @@ for idx, trace in enumerate(traces):
         if  trace[i][3].shape != (h,w) or np.any(obs['grid'][:h,:w] != trace[i][3].astype(np.uint8)):
             #print(obs['grid'][:h,:w], trace[i][3])
             #exit()
+            #print('failure, last op was ',op)
+            #print( obs['grid'][:h,:w])
+            #print(trace[i][3])
+            aa,bb = obs['object_states']['object_dim']
+            #print(obs['object_states']['object'][:aa,:bb])
             failure_trace.append(idx)
-            #time.sleep(5)
             good_trace = False
             break
             
