@@ -5,6 +5,27 @@ from numpy.typing import NDArray
 from typing import SupportsInt,Callable,Tuple
 from .object import _get_bbox
 
+def submit(state, action):
+    if state['trials_remain']>0:
+        state['trials_remain'] -=1
+
+def gen_submit(state, action, answer: NDArray):
+    def submit(state, action):
+        if state['trials_remain']>0:
+            state['trials_remain'] -=1
+            if state['trials_remain'] ==0:
+                state['terminated'] = 1
+            
+            h,w = answer.shape
+            if state['grid_dim'] == (h,w) and np.all(state['grid'][0:h, 0:w] == answer):
+                state['terminated'] = 1
+                # correct
+                return
+        else:
+            state['terminated'] = 1
+        
+    return submit
+
 def reset_grid(state, action):
     '''
     ResetGrid function that resets grid.
@@ -24,17 +45,13 @@ def copy_from_input(state, action):
 
     Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: Tuple), 
     '''
-    input_h, input_w = state['input_dim']
-    inp_shape = (input_h, input_w)
-    cpi = np.copy(state['input'][:input_h, :input_w]).astype(np.uint8)
-    
-    state['grid_dim'] = inp_shape
-    state['grid'][:, :] = 0
-    state['grid'][:input_h, :input_w] = cpi
+
+    state['grid_dim'] = state['input_dim']
+    state['grid'][:, :] = state['input']
     
 def resize_grid(state, action):
     '''
-    Resize Grid and Reset.
+    Resize Grid and Reset. Use bounding box of 'selection' as a target bbox size.
     
     Action Space Requirements (key: type) : (`selection`: NDArray)
 
@@ -43,15 +60,15 @@ def resize_grid(state, action):
     if not np.any(action['selection']):
         return
     
-    xmin,xmax,ymin,ymax = _get_bbox(action['selection'])
-    H = xmax-xmin+1
-    W = ymax-ymin+1
+    xmin, xmax, ymin, ymax = _get_bbox(action['selection'])
+    h = xmax-xmin+1
+    w = ymax-ymin+1
     state['grid'][:, :] = 0
-    state['grid_dim'] = (H,W)
+    state['grid_dim'] = (h,w)
     
 def crop_grid(state, action):
     '''
-    Crop Grid by selection bounding box.
+    Crop Grid by selection.
     
     Action Space Requirements (key: type) : (`selection`: NDArray)
 
@@ -60,12 +77,12 @@ def crop_grid(state, action):
     if not np.any(action['selection']):
         return
     
-    xmin,xmax,ymin,ymax = _get_bbox(action['selection'])
+    xmin, xmax, ymin, ymax = _get_bbox(action['selection'])
     H = xmax-xmin+1
     W = ymax-ymin+1
     patch = np.zeros((H,W),dtype=np.uint8)
     np.copyto(dst=patch, src=state['grid'][xmin:xmax+1, ymin:ymax+1], where= np.logical_and(action['selection'][xmin:xmax+1, ymin:ymax+1],state['grid'][xmin:xmax+1, ymin:ymax+1]))
     state['grid'][:,:]=0
-    #state['grid'][0:H, 0:W] = patch # comment when test
+    state['grid'][0:H, 0:W] = patch # comment when test
     state['grid_dim'] = (H,W)
     

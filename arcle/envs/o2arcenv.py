@@ -12,8 +12,8 @@ from .arcenv import AbstractARCEnv
 
 class O2ARCv2Env(AbstractARCEnv):
 
-    def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
-        super().init_observation(initial_grid, options)
+    def init_state(self, initial_grid: NDArray, options: Dict) -> None:
+        super().init_state(initial_grid, options)
         
         add_dict = {
             "selected": np.zeros((self.H,self.W), dtype=np.uint8),
@@ -32,28 +32,31 @@ class O2ARCv2Env(AbstractARCEnv):
 
         self.current_state.update(add_dict)
     
-    def create_observation_space(self):
-        old_space = super().create_observation_space()
+    def create_state_space(self):
+        old_space = super().create_state_space()
+
+        '''
+        active: is object selection mode enabled?
+        object: original data of object shapes and colors
+        object_sel: original shape of selection area, same-shaped to object_dim
+        object_pos: position of object
+        background: background separated to object, same-shaped with grid_dim
+        rotation_parity: rotation parity to keep rotation center
+        '''
 
         new_space_dict = {
                 "selected": spaces.MultiBinary((self.H,self.W)),
                 "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
                 "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
-                "object_states":spaces.Dict({
-                    # objsel_active: is object selection mode enabled?
-                    "active": spaces.Discrete(2), 
 
-                    # objsel: original data of object shapes and colors
+                "object_states":spaces.Dict({
+                    "active": spaces.Discrete(2),
                     "object": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                    # objsel_area: original shape of selection area, same-shaped to object_dim
                     "object_sel":  spaces.MultiBinary((self.H,self.W)),
                     "object_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
-                    "object_pos": spaces.Tuple((spaces.Discrete(200,start=-100),spaces.Discrete(200,start=-100))), # objsel_coord
+                    "object_pos": spaces.Tuple((spaces.Discrete(200,start=-100),spaces.Discrete(200,start=-100))), 
 
-                    # objsel_bg: background separated to object, same-shaped with grid_dim
-                    "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.uint8), 
-                    
-                    # objsel_rot: rotation parity to keep rotation center
+                    "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.uint8),
                     "rotation_parity": spaces.Discrete(10),
                 })
         }
@@ -61,8 +64,6 @@ class O2ARCv2Env(AbstractARCEnv):
         new_space_dict.update(old_space.spaces)
         return spaces.Dict(new_space_dict)
         
-        
-    
     def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
@@ -71,7 +72,7 @@ class O2ARCv2Env(AbstractARCEnv):
             }
         )
     
-    def create_actions(self) -> List[Callable[..., Any]]:
+    def create_operations(self) -> List[Callable[..., Any]]:
         from ..actions.object import (
             reset_sel, keep_sel,
             gen_move, gen_rotate, gen_flip,
@@ -81,37 +82,34 @@ class O2ARCv2Env(AbstractARCEnv):
             gen_color, gen_flood_fill
         )
         from ..actions.critical import (
-            copy_from_input,reset_grid,resize_grid,crop_grid
+            copy_from_input,reset_grid,resize_grid,crop_grid,submit
         )
-        acts = []
+        ops = [None] * 35
 
         # color ops (20)
-        # Resets previous object selection for move/rot/flip.
-        acts.extend([reset_sel(gen_color(i)) for i in range(10)])       # 0 ~ 9
-        acts.extend([reset_sel(gen_flood_fill(i)) for i in range(10)])  # 10 ~ 19
+        ops[0:10] = [reset_sel(gen_color(i)) for i in range(10)]
+        ops[10:20] = [reset_sel(gen_flood_fill(i)) for i in range(10)]
 
         # obj ops (8)
-        acts.extend([gen_move(i) for i in range(4)])                    # 20 ~ 23
-        acts.append(gen_rotate(1))                                      # 24
-        acts.append(gen_rotate(3))                                      # 25 
-        acts.append(gen_flip("H"))                                      # 26
-        acts.append(gen_flip("V"))                                      # 27
+        ops[20:24] = [gen_move(i) for i in range(4)]
+        ops[24] = gen_rotate(1)
+        ops[25] = gen_rotate(3)
+        ops[26] = gen_flip("H")
+        ops[27] = gen_flip("V")
         
         # clipboard ops (3)
-        acts.append(reset_sel(gen_copy("I"))) # reset selection since it is from input grid         # 28
-        acts.append(reset_sel(gen_copy("O"))) # do not reset since it is selected from output grid   # 29
-        acts.append(reset_sel(Paste))                                   # 30
+        ops[28] = reset_sel(gen_copy("I"))
+        ops[29] = reset_sel(gen_copy("O"))  
+        ops[30] = reset_sel(Paste)
 
         # critical ops (3)
-        acts.append(reset_sel(copy_from_input))                           # 31 = -4
-        acts.append(reset_sel(reset_grid))                               # 32 = -3
-        acts.append(reset_sel(crop_grid))                              # 33 = -2
+        ops[31] = reset_sel(copy_from_input)
+        ops[32] = reset_sel(reset_grid)
+        ops[33] = reset_sel(crop_grid)
 
-        # submit op (1)                                                 # 34 = -1
-
-        #  20 + 8 + 3 + 3 + 1 = 35
-
-        return acts
+        # submit op (1)
+        ops[34] = reset_sel(submit)
+        return ops
 
     def get_info(self) -> Dict:
         return {
@@ -119,7 +117,7 @@ class O2ARCv2Env(AbstractARCEnv):
         }
 
     def reward(self, state) -> SupportsFloat:
-        if not state['terminated']:
+        if not self.last_action_op == 34:
             return 0
         if state['grid_dim'] == self.answer.shape:
             h,w = self.answer.shape
@@ -129,26 +127,25 @@ class O2ARCv2Env(AbstractARCEnv):
     
     def step(self, action: ActType):
 
-        selection = action['selection'].astype(np.bool_)
         operation = int(action['operation'])
 
-        self._transition(self.current_state, action)
+        self.transition(self.current_state, action)
         self.last_action_op = operation
         self.last_action = action
 
         # do action
-        obs = self.current_state
-        reward = self.reward(self.current_state)
+        state = self.current_state
+        reward = self.reward(state)
         self.last_reward = reward
         info = self.get_info()
         self.action_steps+=1
         self.render()
 
-        return obs, reward, self.terminated, self.truncated, info
+        return self.current_state, reward, self.terminated, self.truncated, info
 
-    def _transition(self, state: ObsType, action: ActType) -> None:
-        operation = int(action['operation'])
-        self.actions[operation](state,action)
+    def transition(self, state: ObsType, action: ActType) -> None:
+        op = int(action['operation'])
+        self.operations[op](state,action)
 
     def render_ansi(self):
         if self.rendering is None:
@@ -187,7 +184,7 @@ class O2ARCv2Env(AbstractARCEnv):
             print('\033[0m')
 
         print('Dimension : '+ str(grid_dim), end=' ')
-        print('Action : ' + str(self.action_names[self.last_action_op] if self.last_action_op is not None else '') , end=' ')
+        print('Action : ' + str(self.op_names[self.last_action_op] if self.last_action_op is not None else '') , end=' ')
         print(f'Selected : {True if self.last_action is not None and  np.any(self.last_action["selection"]) else False}', end=' ')
         print('Reward : ' + str(self.last_reward)+ '\033[K')
         

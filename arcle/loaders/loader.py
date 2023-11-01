@@ -12,7 +12,6 @@ class Loader(metaclass=ABCMeta):
     __init__ calls self.get_path() and self.parse(). You should implement these functions to work properly.
 
     '''
-    data_path = None
     _pathlist = []
 
     def __init__(self, **kwargs) -> None:
@@ -78,8 +77,6 @@ class ARCLoader(Loader):
         else:
             path = os.path.join(path,'evaluation')
 
-        self.data_path = path
-
         path = os.path.join(path,'*.json')
         pathlist = glob.glob(path)
         
@@ -121,8 +118,6 @@ class MiniARCLoader(Loader):
     def get_path(self, **kwargs):
 
         path = os.path.join(os.path.dirname(__file__),'../arcs/Mini-ARC/data/MiniARC')
-
-        self.data_path = path
 
         path = os.path.join(path,'*.json')
         pathlist = glob.glob(path)

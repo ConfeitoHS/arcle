@@ -87,8 +87,9 @@ def gen_flood_fill(color: SupportsInt) -> Callable:
 
     def floodfillf(state, action):
         sel = action['selection']
-        if np.sum(sel)>1:
-            return # NOOP if two or more pixel selected
+
+        if np.sum(sel)!=1:
+            return # NOOP
         
         x,y = np.unravel_index(np.argmax(sel),shape=sel.shape)
 

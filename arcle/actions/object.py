@@ -7,10 +7,6 @@ from numpy.typing import NDArray
 from typing import SupportsInt,Callable,Tuple
 from functools import wraps
 
-def _pad(source: NDArray, H, W):
-    h, w = source.shape
-    return np.pad(source, ((0,H-h),(0,W-w)),constant_values=0)
-
 def reset_sel(function):
     '''
     Wrapper for Non-O2ARC actions. This wrapper resets `selected` of obs space and resets object-operation states.
@@ -44,132 +40,129 @@ def keep_sel(function):
         return function(state, action, **kwargs)
     return wrapper
 
-def _get_bbox(img):
+def _pad_assign(dst: NDArray, src: NDArray):
+    h, w = src.shape
+    dst[:h, :w] = src
+    dst[h:,:] = 0
+    dst[:, w:] = 0
+    
+def _get_bbox(img: NDArray) -> Tuple[int,int,int,int]:
+    '''
+    Receives NDArray, returns bounding box of its truthy values.
+    '''
+
     rows = np.any(img, axis=1)
     cols = np.any(img, axis=0)
     rmin, rmax = np.where(rows)[0][[0, -1]]
     cmin, cmax = np.where(cols)[0][[0, -1]]
     return rmin, rmax, cmin, cmax
 
-def _init_objsel(state, sel: NDArray):
+def _init_objsel(state: dict, selection: NDArray) -> Tuple[int,int,int,int]:
+    '''
+    Initialize object selection states for smooth object-oriented actions
+    '''
 
     objdict = state['object_states']
-    H, W = state['input'].shape
-    # if    something newly selected
-    # then  previous object selection will be wiped
-    if np.any(sel>0): 
-        # separate
-        xmin, xmax, ymin, ymax = _get_bbox(sel)
-        # backup
+    sel = selection
+    # when something newly selected, previous object selection will be wiped
+    if np.any(sel): 
+        
+        xmin, xmax, ymin, ymax = _get_bbox(sel) # bounding box of selection
+        
         h = xmax-xmin+1
         w = ymax-ymin+1
 
-        objdict['object'][:, :] = 0
-        np.copyto(objdict['object'][:h,:w], state['grid'][xmin:xmax+1, ymin:ymax+1] * sel[xmin:xmax+1, ymin:ymax+1])
+        
+        # wipe object and set a new object from selected pixels
         objdict['object_dim'] = (h, w)
+        selected_part = sel[xmin:xmax+1, ymin:ymax+1]
+
+        objdict['object'][:, :] = 0 
+        np.copyto(objdict['object'][0:h,0:w], state['grid'][xmin:xmax+1, ymin:ymax+1], where=selected_part)
+        
         objdict['object_sel'][:,:] = 0
-        np.copyto(objdict['object_sel'][:h,:w], sel[xmin:xmax+1, ymin:ymax+1])
+        np.copyto(objdict['object_sel'][0:h,0:w], selected_part, where=selected_part)
+        
+        # background backup
+        np.copyto(objdict['background'], state['grid'])
+        np.copyto(objdict['background'], 0, where=sel)
 
-        objdict['background'] = np.copy(state['grid'])
-        np.copyto(dst=objdict['background'], src=0, where=sel)
-
+        # position, active, parity initialize
         objdict['object_pos'] = (int(xmin), int(ymin)) 
         objdict['active'] = 1
         objdict['rotation_parity'] = 0
 
-        state['selected'] = np.copy(sel)
+        # copy selection into selected obs
+        np.copyto(state['selected'], np.copy(sel))
 
+        # return bounding box of selection
         return xmin, xmax, ymin, ymax
     
-    # if    objsel active and no selection
-    # then  continue with prev objsel
+
+    # when object selection was active without new selection, continue with prev objsel
     elif objdict['active']: 
+        # gives previous bounding pox
         x, y = objdict['object_pos']
         h, w = objdict['object_dim']
         return x, x+h-1, y, y+w-1
     
-    # if    objsel inactive and no selection
-    # then  we ignore this action
+    # when objsel inactive and no selection, we ignore this action
     else:
         return None, None, None, None
 
-def _apply_patch(state):
+def _apply_patch(state: dict):
+    '''
+    Combine 'background' and 'object' at 'object_pos', and put it into 'grid'.
+    '''
     objdict = state['object_states']
-    p = objdict['object']
-    H, W = state['input'].shape
+    p: NDArray = objdict['object']
 
-    patch = np.zeros((H, W), dtype=np.uint8)
     x, y = objdict['object_pos']
     h, w = objdict['object_dim']
     gh, gw = state['grid_dim']
     p = p[:h, :w]
-    
-    if x+h<=0 or x>=gh or y+w<=0 or y>=gw: # Perfectly out of bound
-        pass
-    else:
+
+    # copy background
+    np.copyto(state['grid'], objdict['background'])
+    if   x+h>0 and x<gh and y+w>0 and y<gw  :
+        # if patch is inside of the grid
         
+        # patch paste bounding box
         stx = max(0,x)
         edx = min(gh,x+h)
-        
         sty = max(0,y)
         edy = min(gw,y+w)
-
-        if x<0 and x+h>gh:
-            p = p[-x:gh-x-h, :]
-        elif x<0:
-            p = p[-x: , :]
-        elif x+h>gh:
-            p = p[:gh-x-h, :]
         
-        if y<0 and y+w>gw:
-            p = p[:, -y:gw-y-w]
-        elif y<0:
-            p = p[:, -y:]
-        elif y+w>gw:
-            p = p[:, :gw-y-w]
-
-        patch[stx:edx, sty:edy] = p
-
-    img = np.copy(objdict['background'])
-    np.copyto(img, patch, where=(patch!=0))
-    return img
+        # truncate patch
+        p = p[ stx-x : (gh-x-h if x+h>gh else gh), sty-y : (gw-y-w if y+w>gw else gw) ]
+        np.copyto(state['grid'][stx:edx, sty:edy], p, where=(p>0))
 
 def _apply_sel(state):
+    '''
+    Place the 'object_sel' into 'selected', at 'object_pos'
+    '''
     objdict = state['object_states']
-    p = objdict['object_sel']
-    H, W = state['input'].shape
-    patch = np.zeros((H,W), dtype=np.bool_)
+    p: NDArray = objdict['object_sel']
+
     x, y = objdict['object_pos']
     h, w = objdict['object_dim']
     gh, gw = state['grid_dim']
     p = p[:h, :w]
-    if x+h<=0 or x>=gh or y+w<=0 or y>=gw: # Perfectly out of bound
-        pass
-    else:
+
+    # copy background
+    state['selected'][:,:] = 0
+    if   x+h>0 and x<gh and y+w>0 and y<gw  :
+        # if patch is inside of the grid
         
+        # patch paste bounding box
         stx = max(0,x)
         edx = min(gh,x+h)
-        
         sty = max(0,y)
         edy = min(gw,y+w)
-
-        if x<0 and x+h>gh:
-            p = p[-x:gh-x-h, :]
-        elif x<0:
-            p = p[-x: , :]
-        elif x+h>gh:
-            p = p[:gh-x-h, :]
         
-        if y<0 and y+w>gw:
-            p = p[:, -y:gw-y-w]
-        elif y<0:
-            p = p[:, -y:]
-        elif y+w>gw:
-            p = p[:, :gw-y-w]
-
-        patch[stx:edx, sty:edy] = p
-    
-    return patch
+        # truncate patch
+        p = p[ stx-x : (gh-x-h if x+h>gh else gh), sty-y : (gw-y-w if y+w>gw else gw) ]
+        np.copyto(state['selected'][stx:edx, sty:edy], p)
 
 def gen_rotate(k=1):
     '''
@@ -177,19 +170,18 @@ def gen_rotate(k=1):
 
     Action Space Requirements (key: type) : (`selection`: NDArray)  
 
-    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`objsel`: NDArray), (`objsel_bg`: NDArray), (`objsel_active`: Boolean), (`objsel_coord`: Tuple), (`objsel_rot`: Integer)
+    State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`objsel`: NDArray), (`objsel_bg`: NDArray), (`objsel_active`: Boolean), (`objsel_coord`: Tuple), (`objsel_rot`: Integer)
     '''
     assert 0<k<4
 
     def Rotate(state, action):
-        
-        sel = action['selection']
-        xmin, xmax, ymin, ymax = _init_objsel(state,sel)
+
+        xmin, xmax, ymin, ymax = _init_objsel(state,action['selection'])
         if xmin is None:
             return
+        
         objdict = state['object_states']
         h, w = objdict['object_dim']
-        H, W = state['input'].shape
 
         if k%2 ==0:
             pass
@@ -215,10 +207,10 @@ def gen_rotate(k=1):
             objdict['object_dim'] = (w,h)
             
         
-        objdict['object'] = _pad(np.rot90(objdict['object'][:h,:w],k=k), H, W)
-        objdict['object_sel'] = _pad(np.rot90(objdict['object_sel'][:h,:w],k=k), H, W)
-        state['grid'] = _apply_patch(state)
-        state['selected'] = _apply_sel(state)
+        _pad_assign(objdict['object'], np.rot90(objdict['object'][:h,:w],k=k))
+        _pad_assign(objdict['object_sel'], np.rot90(objdict['object_sel'][:h,:w],k=k))
+        _apply_patch(state)
+        _apply_sel(state)
 
     Rotate.__name__ = f"Rotate_{90*k}"    
     return Rotate
@@ -234,17 +226,18 @@ def gen_move(d=0):
     assert 0<= d <4
     dirX = [-1, +1, 0, 0]
     dirY = [0, 0, +1, -1]
+
     def Move(state, action):
         sel = action['selection']
-        xmin, xmax, ymin, ymax = _init_objsel(state,sel)
+        par,_,_,_ = _init_objsel(state,sel)
 
-        if xmin is None:
+        if par is None:
             return
 
         x, y = state['object_states']['object_pos']
         state['object_states']['object_pos'] = (int(x + dirX[d]), int(y + dirY[d]))
-        state['grid'] = _apply_patch(state)
-        state['selected'] = _apply_sel(state)
+        _apply_patch(state)
+        _apply_sel(state)
         
     Move.__name__ = f"Move_{'UDRL'[d]}"
     return Move
@@ -269,18 +262,18 @@ def gen_flip(axis:str = "H"):
     
     flipfunc = flips[axis]
 
-    def Flip(state, action ):
+    def Flip(state, action):
         sel = action['selection']
-        xmin, xmax, ymin, ymax = _init_objsel(state,sel)
-        if xmin is None:
+        valid,_,_,_ = _init_objsel(state,sel)
+        if valid is None:
             return
         objdict = state['object_states']
         h, w = objdict['object_dim']
-        H, W = state['input'].shape
-        objdict['object'] = _pad(flipfunc(objdict['object'][:h,:w]), H, W)
-        objdict['object_sel'] = _pad(flipfunc(objdict['object_sel'][:h,:w]), H, W)
-        state['grid'] = _apply_patch(state)
-        state['selected'] = _apply_sel(state)
+
+        _pad_assign(objdict['object'],flipfunc(objdict['object'][:h,:w]))
+        _pad_assign(objdict['object_sel'],flipfunc(objdict['object_sel'][:h,:w]))
+        _apply_patch(state)
+        _apply_sel(state)
     
     Flip.__name__ = f"Flip_{axis}"
     return Flip
@@ -294,7 +287,8 @@ def gen_copy(source="I"):
     Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`clip`: NDArray), (`clip_dim`: Tuple)
     '''
     assert source in ["I", "O"], "Invalid Source grid"
-    def Copy(state, action ):
+    srckey = 'input' if source=="I" else 'grid'
+    def Copy(state, action):
         sel = action["selection"]
         
         if not np.any(sel>0): #nothing to copy
@@ -303,21 +297,19 @@ def gen_copy(source="I"):
         xmin, xmax, ymin, ymax = _get_bbox(sel)
         h = xmax-xmin+1
         w = ymax-ymin+1
-        H, W = state['input'].shape
-        state['clip'] = np.zeros((H,W),dtype=np.uint8)
+
+        state['clip'][:,:] = 0
         state['clip_dim'] = (h,w)
 
-        if source == "I":
-            np.copyto(state['clip'][:h, :w], state['input'][xmin:xmin+h, ymin:ymin+w], where=np.logical_and(state['input'][xmin:xmin+h, ymin:ymin+w]>0,sel[xmin:xmin+h, ymin:ymin+w] ))
-        elif source == "O":
-            np.copyto(state['clip'][:h, :w], state['grid'][xmin:xmin+h, ymin:ymin+w], where=np.logical_and(state['grid'][xmin:xmin+h, ymin:ymin+w]>0, sel[xmin:xmin+h, ymin:ymin+w]))
-        
+        src_grid = state[srckey][xmin:xmax+1, ymin:ymax+1]
+        np.copyto(state['clip'][:h, :w], src_grid, \
+                      where=np.logical_and(src_grid, sel[xmin:xmax+1, ymin:ymax+1] ))
     Copy.__name__ = f"Copy_{source}"
     return Copy
 
 def Paste(state, action):
     '''
-    Paste action. If you want to use generic Copy/Paste, please wait further updates.
+    Paste action.
 
     Action Space Requirements (key: type) : (`selection`: NDArray)
 
@@ -326,17 +318,23 @@ def Paste(state, action):
     sel = action["selection"]
     if not np.any(sel>0) : # no location specified
         return
+    
     xmin, _, ymin, _ = _get_bbox(sel)
+
     H, W = state['input'].shape
-    if xmin >= H or ymin >= W: # out of bound
+    h, w = state['clip_dim']
+
+    if xmin >= H or ymin >= W or h==0 or w==0: # out of bound or no selection
         return
     
-    h,w = state['clip_dim']
-
-    if h==0 or w==0: # No selection
-        return 
+    patch = state['clip'][:h, :w]
     
+    # truncate patch
     edx = min(xmin+h, H)
     edy = min(ymin+w, W)
-    #np.copyto(state['grid'][xmin:edx, ymin:edy], state['clip'][:edx-xmin, :edy-ymin], where=state['clip'][:edx-xmin, :edy-ymin]>0)
-    np.copyto(state['grid'][xmin:edx, ymin:edy], state['clip'][:edx-xmin, :edy-ymin]) # Comment if testing
+    patch = patch[:edx-xmin, :edy-ymin]
+    
+    # paste
+    #np.copyto(state['grid'][xmin:edx, ymin:edy], patch) # for debug
+    np.copyto(state['grid'][xmin:edx, ymin:edy], patch, where=(patch>0))
+    

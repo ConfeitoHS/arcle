@@ -8,6 +8,8 @@ from abc import abstractmethod, ABCMeta
 from typing import Dict,Optional,Union,Callable,List, Tuple, SupportsFloat, SupportsInt, SupportsIndex, Any
 from numpy.typing import NDArray
 
+from arcle.loaders import Loader
+
 from ..loaders import MiniARCLoader, ARCLoader, Loader
 
 class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
@@ -17,15 +19,13 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
 
     ansi256arc = [0,12,9,10,11,8,13,208,14,52] # ANSI Color Code
     metadata = { "render_modes": ["ansi","human"] , "render_fps": 5 }
-
-    terminated: bool = False
-    truncated: bool = False
     
-    current_state: ObsType = None
+    # Observation(state)
+    current_state: ObsType
     
     # Action Histories
     last_action: ActType = None
-    last_action_op : SupportsIndex = None  # action index of DSLs
+    last_action_op: SupportsIndex = None
     last_reward: SupportsFloat = 0
     action_steps: SupportsInt = 0
     
@@ -58,20 +58,12 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         self.rendering = None  # Current rendering obj: PyGame window when render_mode='human', or True when render_mode='ansi'
         
         # Assign action functions / names
-        self.actions = self.create_actions()
-        actcnt = len(self.actions)
+        self.operations = self.create_operations()
 
         # Create obs / action spaces
-        self.observation_space = self.create_observation_space()
-        self.action_space = self.create_action_space(actcnt+1)
-
-        def submit(state, action, **kwargs):
-            state['trials_remain'] -=1
-            if state['trials_remain'] == 0:
-                state['terminated'] = 1
-        
-        self.actions.append(submit)
-        self.action_names = [ ''.join(map(str.capitalize,ac.__name__.split('_')))  for ac in self.actions]
+        self.observation_space = self.create_state_space()
+        self.action_space = self.create_action_space(len(self.operations))
+        self.op_names = [ ''.join(map(str.capitalize, op.__name__.split('_')))  for op in self.operations]
 
     
     def reset(self, seed = None, options: Optional[Dict] = None):
@@ -108,7 +100,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             self.input_ = tt_in[subprob_index]
             self.answer = tt_out[subprob_index]
 
-        self.init_observation(self.input_.copy(),options)
+        self.init_state(self.input_.copy(),options)
 
         self.description = desc
 
@@ -119,26 +111,28 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         info = self.get_info()
 
         return obs, info
-        
+    
     @abstractmethod
-    def create_observation_space(self) -> spaces.Dict:
+    def create_state_space(self) -> spaces.Dict:
         return spaces.Dict({
+            "trials_remain": spaces.Discrete(self.max_trial+1, start=0),
+
             "input": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
             "input_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
-
-            "trials_remain": spaces.Discrete(self.max_trial+1, start=0),
-            "terminated": spaces.Discrete(2),
 
             "grid": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
             "grid_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
         })
-
+    
     @abstractmethod
     def create_action_space(self, action_count) -> spaces.Dict: 
-        pass
+        return spaces.Dict({
+                "selection": spaces.MultiBinary((self.H,self.W)),
+                "operation": spaces.Discrete(action_count)
+        })
 
     @abstractmethod
-    def create_actions(self) -> List[Callable]:
+    def create_operations(self) -> List[Callable]:
         pass
 
     @abstractmethod
@@ -146,11 +140,10 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
+    def init_state(self, initial_grid: NDArray, options: Dict) -> None:
         isize = initial_grid.shape
         self.current_state = {
             "trials_remain": self.max_trial,
-            "terminated": self.terminated,
 
             "input": np.pad(self.input_, [(0, self.H-isize[0]),(0, self.W-isize[1])], constant_values=0),
             "input_dim": self.input_.shape,
@@ -159,6 +152,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             "grid_dim": isize
         }
 
+    @abstractmethod 
     def reward(self) -> SupportsFloat:
         return 0
 
@@ -199,153 +193,66 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             print('\033[0m')
 
         print('Dimension : '+ str(grid_dim), end=' ')
-        print('Action : ' + str(self.action_names[self.last_action_op] if self.last_action_op is not None else '') , end=' ')
+        print('Action : ' + str(self.op_names[self.last_action_op] if self.last_action_op is not None else '') , end=' ')
         print('Reward : ' + str(self.last_reward)+ '\033[K')
 
 class ARCEnv(AbstractARCEnv):
-    def __init__(self, render_mode: str  = None, train:bool=True, render_size: Tuple[SupportsInt, SupportsInt]  = None) -> None:
-        super().__init__(ARCLoader(train=train), (30,30), 10, render_mode, render_size)
 
-    def create_observation_space(self):
-        return spaces.Dict(
-            {
-                "grid": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "grid_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1)))
-            }
-        )
+    def create_state_space(self):
+        return super().create_state_space()
     
     def create_action_space(self, action_count) -> Any:
-        return spaces.Dict(
-            {
-                "selection": spaces.MultiBinary((self.H,self.W)), # selection Mask
-                "operation": spaces.Discrete(action_count)  # Color(10) + ResizeToAnswer + Submit
-            }
-        )
+        return super().create_action_space
     
-    def create_actions(self) -> List[Callable[..., Any]]:
-        
-        acts = []
+    def create_operations(self) -> List[Callable[..., Any]]:
+        ops = [None] * 12
 
-        def color_grid(color):
-            def colors(cls: AbstractARCEnv, action) :
-                cls.grid = np.ma.array(cls.grid, mask=action['selection']).filled(fill_value=color)
-            colors.__name__ = 'color_'+str(color)
-            return colors
+        from ..actions.color import gen_color
+        from ..actions.critical import submit
         
-        def resize_to_answer(cls: AbstractARCEnv, action):
-            cls.grid_dim = cls.answer.shape
+        def resize_to_answer(state, action):
+            h, w = self.answer.shape
+            state['grid_dim'] = (h,w)
+            state['grid'][h:,:] = 0
+            state['grid'][:,w:] = 0
         
-        acts = [ color_grid(i)  for i in range(10)  ]
-        acts.append(resize_to_answer)
+        ops[0:10] = [ gen_color(i)  for i in range(10) ]
+        ops[10] = resize_to_answer
+        ops[11] = submit
 
-        return acts
+        return ops
     
-    def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
-        super().init_observation(initial_grid, options)
-
-        self.current_state = self.get_observation()
-
-    def get_observation(self) -> ObsType:
-        return {
-            "grid": self.grid,
-            "grid_dim": self.grid_dim
-        }
+    def init_state(self, initial_grid: NDArray, options: Dict) -> None:
+        super().init_state(initial_grid, options)
     
     def get_info(self) -> Dict:
         return {
             "steps": self.action_steps
         }
 
-    def reward(self) -> SupportsFloat:
-        if not self.terminated:
+    def reward(self, state) -> SupportsFloat:
+        if not self.last_action_op == 12:
             return 0
-        if self.grid_dim == self.answer.shape:
+        if state['grid_dim'] == self.answer.shape:
             h,w = self.answer.shape
-            if np.all(self.grid[0:h, 0:w] == self.answer):
+            if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
         return 0
-    
+
     def step(self, action: ActType):
 
-        selection = action['selection'].astype(np.bool_)
-        operation = int(action['operation'])
-        self.last_action_op = operation
+        op = int(action['operation'])
+        self.last_action_op = op
         self.last_action = action
 
         # do action
-        self.actions[operation](self,action)
-        obs = self.get_observation()
-        reward = self.reward()
+        state = self.current_state
+        self.operations[op](state, action)
+        
+        reward = self.reward(state)
         self.last_reward = reward
         info = self.get_info()
         self.action_steps+=1
         self.render()
 
-        return obs, reward, self.terminated, self.truncated, info
-
-class MiniARCEnv(AbstractARCEnv):
-    def __init__(self, render_mode: str  = None, render_size: Tuple[SupportsInt, SupportsInt]  = None) -> None:
-        super().__init__(MiniARCLoader(), (5,5), 10, render_mode, render_size)
-
-    def create_observation_space(self):
-        return spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8)
-    
-    def create_action_space(self, action_count) -> Any:
-        return spaces.Dict(
-            {
-                "selection": spaces.MultiBinary((self.H,self.W)), # selection Mask
-                "operation": spaces.Discrete(action_count)  # Color(10) + Submit
-            }
-        )
-    
-    def create_actions(self) -> List[Callable[..., Any]]:
-        
-        acts = []
-
-        def color_grid(color):
-            def colors(cls: AbstractARCEnv, action) :
-                cls.grid = np.ma.array(cls.grid, mask=action['selection']).filled(fill_value=color)
-            colors.__name__ = 'color_'+str(color)
-            return colors
-        
-        acts = [ color_grid(i)  for i in range(10)  ]
-
-        return acts
-    
-    def init_observation(self, initial_grid: NDArray, options: Dict) -> None:
-        super().init_observation(initial_grid, options)
-
-        self.current_state = self.get_observation()
-
-    def get_observation(self) -> ObsType:
-        return self.grid
-    
-    def get_info(self) -> Dict:
-        return {
-            "steps": self.action_steps
-        }
-
-    def reward(self) -> SupportsFloat:
-        if not self.terminated:
-            return 0
-        if np.all(self.grid == self.answer):
-            return 1
-        return 0
-    
-    def step(self, action: ActType):
-
-        selection = action['selection'].astype(np.bool_)
-        operation = int(action['operation'])
-        self.last_action_op = operation
-        self.last_action = action
-
-        # do action
-        self.actions[operation](self,action)
-        obs = self.get_observation()
-        reward = self.reward()
-        self.last_reward = reward
-        info = self.get_info()
-        self.action_steps+=1
-        self.render()
-
-        return obs, reward, self.terminated, self.truncated, info
+        return self.current_state, reward, self.terminated, self.truncated, info
