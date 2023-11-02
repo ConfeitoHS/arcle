@@ -4,14 +4,15 @@ import pygame as pg
 from gymnasium import spaces,utils
 from gymnasium.core import ObsType, ActType
 
-from abc import abstractmethod, ABCMeta
 from typing import Dict,Optional,Union,Callable,List, Tuple, SupportsFloat, SupportsInt, SupportsIndex, Any
 from numpy.typing import NDArray
+from ..loaders import ARCLoader, Loader
 
-from .arcenv import AbstractARCEnv
+from .base import AbstractARCEnv
 
 class O2ARCv2Env(AbstractARCEnv):
-
+    def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = 3, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
+        super().__init__(data_loader, max_grid_size, colors, max_trial, render_mode, render_size)
     def init_state(self, initial_grid: NDArray, options: Dict) -> None:
         super().init_state(initial_grid, options)
         
@@ -76,13 +77,13 @@ class O2ARCv2Env(AbstractARCEnv):
         from ..actions.object import (
             reset_sel, keep_sel,
             gen_move, gen_rotate, gen_flip,
-            gen_copy, Paste
+            gen_copy, gen_paste
         )
         from ..actions.color import (
             gen_color, gen_flood_fill
         )
         from ..actions.critical import (
-            copy_from_input,reset_grid,resize_grid,crop_grid,submit
+            copy_from_input,reset_grid,resize_grid,crop_grid
         )
         ops = [None] * 35
 
@@ -100,7 +101,7 @@ class O2ARCv2Env(AbstractARCEnv):
         # clipboard ops (3)
         ops[28] = reset_sel(gen_copy("I"))
         ops[29] = reset_sel(gen_copy("O"))  
-        ops[30] = reset_sel(Paste)
+        ops[30] = reset_sel(gen_paste())
 
         # critical ops (3)
         ops[31] = reset_sel(copy_from_input)
@@ -108,16 +109,17 @@ class O2ARCv2Env(AbstractARCEnv):
         ops[33] = reset_sel(crop_grid)
 
         # submit op (1)
-        ops[34] = reset_sel(submit)
+        ops[34] = self.submit
         return ops
 
     def get_info(self) -> Dict:
         return {
             "steps": self.action_steps,
+            "submit_count": self.submit_count,
         }
 
     def reward(self, state) -> SupportsFloat:
-        if not self.last_action_op == 34:
+        if not self.last_action_op == len(self.operations)-1:
             return 0
         if state['grid_dim'] == self.answer.shape:
             h,w = self.answer.shape
@@ -187,4 +189,3 @@ class O2ARCv2Env(AbstractARCEnv):
         print('Action : ' + str(self.op_names[self.last_action_op] if self.last_action_op is not None else '') , end=' ')
         print(f'Selected : {True if self.last_action is not None and  np.any(self.last_action["selection"]) else False}', end=' ')
         print('Reward : ' + str(self.last_reward)+ '\033[K')
-        

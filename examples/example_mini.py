@@ -2,9 +2,9 @@ import arcle
 import gymnasium as gym
 import time
 import numpy as np
+from arcle.loaders import MiniARCLoader
 
-
-env = gym.make('ARCLE/MiniARCEnv-v0',render_mode='ansi')
+env = gym.make('ARCLE/RawARCEnv-v0',render_mode='ansi',data_loader = MiniARCLoader(),max_grid_size=(5,5))
 
 obs, info = env.reset()
 

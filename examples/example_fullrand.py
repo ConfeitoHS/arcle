@@ -2,7 +2,7 @@ import arcle
 import gymnasium as gym
 import time
 
-env = gym.make('ARCLE/ARCEnv-v0',render_mode='ansi')
+env = gym.make('ARCLE/RawARCEnv-v0',render_mode='ansi')
 
 obs, info = env.reset()
 

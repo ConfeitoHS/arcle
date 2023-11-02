@@ -295,6 +295,12 @@ def gen_copy(source="I"):
             return
         
         xmin, xmax, ymin, ymax = _get_bbox(sel)
+
+        ss_h, ss_w = state[srckey+'_dim']
+
+        if xmax>=ss_h or ymax>ss_w: # out of bound
+            return
+        
         h = xmax-xmin+1
         w = ymax-ymin+1
 
@@ -307,34 +313,37 @@ def gen_copy(source="I"):
     Copy.__name__ = f"Copy_{source}"
     return Copy
 
-def Paste(state, action):
-    '''
-    Paste action.
+def gen_paste(paste_blank = False):
+    def Paste(state, action):
+        '''
+        Paste action.
 
-    Action Space Requirements (key: type) : (`selection`: NDArray)
+        Action Space Requirements (key: type) : (`selection`: NDArray)
 
-    Class State Requirements (key: type) :  (`grid`: NDArray), (`grid_dim`: NDArray), (`clip`: NDArray), (`clip_dim`: Tuple)
-    '''
-    sel = action["selection"]
-    if not np.any(sel>0) : # no location specified
-        return
-    
-    xmin, _, ymin, _ = _get_bbox(sel)
+        Class State Requirements (key: type) :  (`grid`: NDArray), (`grid_dim`: NDArray), (`clip`: NDArray), (`clip_dim`: Tuple)
+        '''
+        sel = action["selection"]
+        if not np.any(sel>0) : # no location specified
+            return
+        
+        xmin, _, ymin, _ = _get_bbox(sel)
 
-    H, W = state['input'].shape
-    h, w = state['clip_dim']
+        H, W = state['input'].shape
+        h, w = state['clip_dim']
 
-    if xmin >= H or ymin >= W or h==0 or w==0: # out of bound or no selection
-        return
-    
-    patch = state['clip'][:h, :w]
-    
-    # truncate patch
-    edx = min(xmin+h, H)
-    edy = min(ymin+w, W)
-    patch = patch[:edx-xmin, :edy-ymin]
-    
-    # paste
-    #np.copyto(state['grid'][xmin:edx, ymin:edy], patch) # for debug
-    np.copyto(state['grid'][xmin:edx, ymin:edy], patch, where=(patch>0))
-    
+        if xmin >= H or ymin >= W or h==0 or w==0: # out of bound or no selection
+            return
+        
+        patch = state['clip'][:h, :w]
+        
+        # truncate patch
+        edx = min(xmin+h, H)
+        edy = min(ymin+w, W)
+        patch = patch[:edx-xmin, :edy-ymin]
+        
+        # paste
+        if paste_blank:
+            np.copyto(state['grid'][xmin:edx, ymin:edy], patch) # for debug'
+        else:
+            np.copyto(state['grid'][xmin:edx, ymin:edy], patch, where=(patch>0))
+    return Paste

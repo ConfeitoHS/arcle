@@ -5,27 +5,6 @@ from numpy.typing import NDArray
 from typing import SupportsInt,Callable,Tuple
 from .object import _get_bbox
 
-def submit(state, action):
-    if state['trials_remain']>0:
-        state['trials_remain'] -=1
-
-def gen_submit(state, action, answer: NDArray):
-    def submit(state, action):
-        if state['trials_remain']>0:
-            state['trials_remain'] -=1
-            if state['trials_remain'] ==0:
-                state['terminated'] = 1
-            
-            h,w = answer.shape
-            if state['grid_dim'] == (h,w) and np.all(state['grid'][0:h, 0:w] == answer):
-                state['terminated'] = 1
-                # correct
-                return
-        else:
-            state['terminated'] = 1
-        
-    return submit
-
 def reset_grid(state, action):
     '''
     ResetGrid function that resets grid.
