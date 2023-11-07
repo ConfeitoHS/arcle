@@ -2,10 +2,31 @@
 
 ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for training on ARC(Abstraction and Reasoning Corpus) and ARC-like datasets.
 
+## Requirements
+Python >= 3.8
+
 ## Installation
 `pip install arcle`
 
 ## Changelogs
+
+#### 0.2.5
+- Python 3.8 Support (minimum requirements of Gymnasium)
+- Env Changes
+    - **Rename `ARCEnv` into `RawARCEnv` in this version.**
+    - **Removed `MiniARCEnv`. Please use `RawARCEnv` with `loader=MiniARCLoader()` instead.**
+    - **New `ARCEnv` added, consisting action space of ARC testing interface given along with the ARC Dataset.**
+    - States in every environments are fully observable. All state-related instance variables are now in the `current_state` dictionary.
+        - All operations receives `state` and `action`, and it changes `state` in-place.
+        - You can deepcopy the state and call `env.transition(state_copied, action)` to get next state without changing original state on `O2ARCv2Env`. `env.transition` will be replaced as separated utility function in the future.
+    - n-trial mode added. You canset maximum trials when you call `gym.make()` by putting argument `max_trial=num`. Unlimited trial mode is available when it is set by -1 (default).
+    - Customizable `Submit` operation. It is defined in each env class as a method, not in a separated module.
+        - You can specify boolean option `reset_on_submit` in `env.reset` (default=`False`)
+    
+- Bug fix
+    - `FloodFill` operation without selection case fixed
+    - `Paste` operation out-of-bound case fixed
+    - `CopyI` operation out-of-bound case fixed
 
 #### 0.2.2
 - Bug fix
