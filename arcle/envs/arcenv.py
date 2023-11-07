@@ -14,7 +14,7 @@ from .base import AbstractARCEnv
 
 
 class RawARCEnv(AbstractARCEnv):
-    def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = 3, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
+    def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = -1, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
         super().__init__(data_loader, max_grid_size, colors, max_trial, render_mode, render_size)
 
     def create_state_space(self):

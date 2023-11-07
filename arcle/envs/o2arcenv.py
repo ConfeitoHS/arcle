@@ -11,7 +11,7 @@ from ..loaders import ARCLoader, Loader
 from .base import AbstractARCEnv
 
 class O2ARCv2Env(AbstractARCEnv):
-    def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = 3, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
+    def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = -1, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
         super().__init__(data_loader, max_grid_size, colors, max_trial, render_mode, render_size)
     def init_state(self, initial_grid: NDArray, options: Dict) -> None:
         super().init_state(initial_grid, options)

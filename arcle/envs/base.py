@@ -38,7 +38,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
                  data_loader: Loader,  
                  max_grid_size: Tuple[SupportsInt,SupportsInt], 
                  colors : SupportsInt,
-                 max_trial: SupportsInt = 3,
+                 max_trial: SupportsInt = -1,
                  render_mode: Optional[str] = None, 
                  render_size: Optional[Tuple[SupportsInt,SupportsInt]] = None) -> None:
         
@@ -121,7 +121,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     @abstractmethod
     def create_state_space(self) -> spaces.Dict:
         return spaces.Dict({
-            "trials_remain": spaces.Discrete(self.max_trial+1, start=0),
+            "trials_remain": spaces.Discrete(self.max_trial+2, start=-1),
 
             "input": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
             "input_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
