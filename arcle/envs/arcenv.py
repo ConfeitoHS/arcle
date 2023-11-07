@@ -73,7 +73,7 @@ class RawARCEnv(AbstractARCEnv):
         self.action_steps+=1
         self.render()
 
-        return self.current_state, reward, self.terminated, self.truncated, info
+        return self.current_state, reward, bool(state["terminated"]) , self.truncated, info
 
 class ARCEnv(AbstractARCEnv):
     def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = 3, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
@@ -168,7 +168,7 @@ class ARCEnv(AbstractARCEnv):
         self.action_steps+=1
         self.render()
 
-        return self.current_state, reward, self.terminated, self.truncated, info
+        return self.current_state, reward, bool(state["terminated"]), self.truncated, info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])

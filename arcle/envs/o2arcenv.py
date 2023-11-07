@@ -143,7 +143,7 @@ class O2ARCv2Env(AbstractARCEnv):
         self.action_steps+=1
         self.render()
 
-        return self.current_state, reward, self.terminated, self.truncated, info
+        return self.current_state, reward, bool(state["terminated"]), self.truncated, info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])

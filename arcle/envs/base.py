@@ -70,7 +70,6 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         super().reset(seed=seed,options=options)
 
         # Reset Internal States
-        self.terminated = False
         self.truncated = False
         self.submit_count = 0
         self.last_action: ActType  = None
@@ -122,6 +121,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     def create_state_space(self) -> spaces.Dict:
         return spaces.Dict({
             "trials_remain": spaces.Discrete(self.max_trial+2, start=-1),
+            "terminated": spaces.Discrete(2, start=0),
 
             "input": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
             "input_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
@@ -150,7 +150,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         isize = initial_grid.shape
         self.current_state = {
             "trials_remain": self.max_trial,
-
+            "terminated": 0,
             "input": np.pad(self.input_, [(0, self.H-isize[0]),(0, self.W-isize[1])], constant_values=0),
             "input_dim": self.input_.shape,
 
@@ -168,12 +168,12 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             self.submit_count +=1
             h,w = state["grid_dim"]
             if self.answer.shape == (h,w) and np.all(self.answer==state["grid"][:h,:w]):
-                self.terminated = 1 # correct
+                state["terminated"] = 1 # correct
             if self.reset_on_submit:
                 self.init_state(self.input_, options=self.options)
 
         if state["trials_remain"] == 0:
-            self.terminated = 1 # end 
+            state["terminated"] = 1 # end 
 
     def render(self):
         if self.rendering is None and self.render_mode == "human":
