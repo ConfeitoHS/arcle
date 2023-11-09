@@ -161,7 +161,7 @@ def _apply_sel(state):
         edy = min(gw,y+w)
         
         # truncate patch
-        p = p[ stx-x : (gh-x-h if x+h>gh else gh), sty-y : (gw-y-w if y+w>gw else gw) ]
+        p = p[ stx-x : edx-x, sty-y : edy-y ]
         np.copyto(state['selected'][stx:edx, sty:edy], p)
 
 def gen_rotate(k=1):
@@ -298,7 +298,7 @@ def gen_copy(source="I"):
 
         ss_h, ss_w = state[srckey+'_dim']
 
-        if xmax>=ss_h or ymax>ss_w: # out of bound
+        if xmax>ss_h or ymax>ss_w: # out of bound
             return
         
         h = xmax-xmin+1

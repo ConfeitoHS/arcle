@@ -29,6 +29,7 @@ Python >= 3.8
     - `FloodFill` operation without selection case fixed
     - `Paste` operation out-of-bound case fixed
     - `CopyI` operation out-of-bound case fixed
+    - Apply patch exception handling
 
 #### 0.2.2
 - Bug fix
