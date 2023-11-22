@@ -134,7 +134,7 @@ def _apply_patch(state: dict):
         edy = min(gw,y+w)
         
         # truncate patch
-        p = p[ stx-x : (gh-x-h if x+h>gh else gh), sty-y : (gw-y-w if y+w>gw else gw) ]
+        p = p[ stx-x : edx-x, sty-y : edy-y ]
         np.copyto(state['grid'][stx:edx, sty:edy], p, where=(p>0))
 
 def _apply_sel(state):
