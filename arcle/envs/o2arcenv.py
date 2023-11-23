@@ -101,12 +101,12 @@ class O2ARCv2Env(AbstractARCEnv):
         # clipboard ops (3)
         ops[28] = reset_sel(gen_copy("I"))
         ops[29] = reset_sel(gen_copy("O"))  
-        ops[30] = reset_sel(gen_paste())
+        ops[30] = reset_sel(gen_paste(paste_blank=True))
 
         # critical ops (3)
         ops[31] = reset_sel(copy_from_input)
         ops[32] = reset_sel(reset_grid)
-        ops[33] = reset_sel(crop_grid)
+        ops[33] = reset_sel(resize_grid)
 
         # submit op (1)
         ops[34] = self.submit
