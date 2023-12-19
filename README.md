@@ -1,14 +1,16 @@
 # ARCLE - ARC Learning Environment
 
 ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for training on ARC(Abstraction and Reasoning Corpus) and ARC-like datasets.
+![arclegif](images/miniarcfig.gif)
+![statetrans](images/statetrans.png)
 
 ## Requirements
-Python >= 3.8
+`Python >= 3.8`
 
 ## Installation
 `pip install arcle`
 
-![image](images/ss.png)
+[PyPI Project Page](https://pypi.org/project/arcle/)
 
 ## Changelogs
 
