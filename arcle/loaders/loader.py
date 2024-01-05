@@ -68,7 +68,7 @@ class ARCLoader(Loader):
     
     def get_path(self, **kwargs):
 
-        path = os.path.join(os.path.dirname(__file__),'../arcs/ARC/data')
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../arcs/ARC/data')
         train = kwargs['train']
         self.train = train
 
@@ -117,7 +117,7 @@ class MiniARCLoader(Loader):
     
     def get_path(self, **kwargs):
 
-        path = os.path.join(os.path.dirname(__file__),'../arcs/Mini-ARC/data/MiniARC')
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../arcs/Mini-ARC/data/MiniARC')
 
         path = os.path.join(path,'*.json')
         pathlist = glob.glob(path)
