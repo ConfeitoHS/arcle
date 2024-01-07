@@ -113,9 +113,9 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             self.render()
 
         obs = self.current_state
-        info = self.get_info()
+        self.info = self.init_info()
 
-        return obs, info
+        return obs, self.info
     
     @abstractmethod
     def create_state_space(self) -> spaces.Dict:
@@ -142,8 +142,15 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_info(self) -> Dict:
-        pass
+    def init_info(self) -> Dict:
+        isize = self.input_.shape
+        osize = self.answer.shape
+        return {
+            "input": np.pad(self.input_, [(0, self.H-isize[0]),(0, self.W-isize[1])], constant_values=0),
+            "input_dim": isize,
+            "answer": np.pad(self.answer, [(0, self.H-osize[0]),(0, self.W-osize[1])], constant_values=0),
+            "answer_dim": osize,
+        }
 
     @abstractmethod
     def init_state(self, initial_grid: NDArray, options: Dict) -> None:

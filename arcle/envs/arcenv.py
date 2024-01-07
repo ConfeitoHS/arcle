@@ -43,10 +43,10 @@ class RawARCEnv(AbstractARCEnv):
     def init_state(self, initial_grid: NDArray, options: Dict) -> None:
         super().init_state(initial_grid, options)
     
-    def get_info(self) -> Dict:
-        return {
-            "steps": self.action_steps
-        }
+    def init_info(self) -> Dict:
+        info = super().init_info()
+        info["steps"] = 0
+        return info
 
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
@@ -69,11 +69,11 @@ class RawARCEnv(AbstractARCEnv):
         
         reward = self.reward(state)
         self.last_reward = reward
-        info = self.get_info()
         self.action_steps+=1
+        self.info["steps"] = self.action_steps
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]) , self.truncated, info
+        return self.current_state, reward, bool(state["terminated"]) , self.truncated, self.info
 
 class ARCEnv(AbstractARCEnv):
     def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = 3, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
@@ -137,11 +137,11 @@ class ARCEnv(AbstractARCEnv):
         ops[26] = self.submit
         return ops
 
-    def get_info(self) -> Dict:
-        return {
-            "steps": self.action_steps,
-            "submit_count": self.submit_count,
-        }
+    def init_info(self) -> Dict:
+        info = super().init_info()
+        info["steps"] = 0
+        info["submit_count"] = 0
+        return info
 
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
@@ -164,11 +164,12 @@ class ARCEnv(AbstractARCEnv):
         state = self.current_state
         reward = self.reward(state)
         self.last_reward = reward
-        info = self.get_info()
         self.action_steps+=1
+        self.info['steps'] = self.action_steps
+        self.info['submit_count'] = self.submit_count
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]), self.truncated, info
+        return self.current_state, reward, bool(state["terminated"]), self.truncated, self.info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])

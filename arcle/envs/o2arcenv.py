@@ -112,11 +112,11 @@ class O2ARCv2Env(AbstractARCEnv):
         ops[34] = self.submit
         return ops
 
-    def get_info(self) -> Dict:
-        return {
-            "steps": self.action_steps,
-            "submit_count": self.submit_count,
-        }
+    def init_info(self) -> Dict:
+        info = super().init_info()
+        info["steps"] = 0
+        info["submit_count"] = 0
+        return info
 
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
@@ -139,15 +139,17 @@ class O2ARCv2Env(AbstractARCEnv):
         state = self.current_state
         reward = self.reward(state)
         self.last_reward = reward
-        info = self.get_info()
         self.action_steps+=1
+        self.info['steps'] = self.action_steps
+        self.info['submit_count'] = self.submit_count
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]), self.truncated, info
+        return self.current_state, reward, bool(state["terminated"]), self.truncated, self.info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])
         self.operations[op](state,action)
+        
 
     def render_ansi(self):
         if self.rendering is None:
