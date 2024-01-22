@@ -46,14 +46,14 @@ class O2ARCv2Env(AbstractARCEnv):
         '''
 
         new_space_dict = {
-                "selected": spaces.MultiBinary((self.H,self.W)),
+                "selected": spaces.Box(0,1,(self.H,self.W),dtype=np.uint8),
                 "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
                 "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
 
                 "object_states":spaces.Dict({
                     "active": spaces.Discrete(2),
                     "object": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                    "object_sel":  spaces.MultiBinary((self.H,self.W)),
+                    "object_sel":  spaces.Box(0,1,(self.H,self.W),dtype=np.uint8),
                     "object_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
                     "object_pos": spaces.Tuple((spaces.Discrete(200,start=-100),spaces.Discrete(200,start=-100))), 
 
@@ -68,7 +68,7 @@ class O2ARCv2Env(AbstractARCEnv):
     def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
-                "selection": spaces.MultiBinary((self.H,self.W)), # selection Mask
+                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.uint8), # selection Mask
                 "operation": spaces.Discrete(action_count)
             }
         )

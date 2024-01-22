@@ -133,7 +133,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     @abstractmethod
     def create_action_space(self, action_count) -> spaces.Dict: 
         return spaces.Dict({
-                "selection": spaces.MultiBinary((self.H,self.W)),
+                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.uint8),
                 "operation": spaces.Discrete(action_count)
         })
 

@@ -23,7 +23,8 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8"
 pygame = "^2.5.1"
-gymnasium = "^0.29.0"
+gymnasium = ">=0.28.0"
+numpy = ">=1.24"
 
 [build-system]
 requires = ["poetry-core"]

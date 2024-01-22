@@ -75,7 +75,7 @@ def _init_objsel(state: dict, selection: NDArray) -> Tuple[int,int,int,int]:
         
         # wipe object and set a new object from selected pixels
         objdict['object_dim'] = (h, w)
-        selected_part = sel[xmin:xmax+1, ymin:ymax+1]
+        selected_part = sel[xmin:xmax+1, ymin:ymax+1] >0
 
         objdict['object'][:, :] = 0 
         np.copyto(objdict['object'][0:h,0:w], state['grid'][xmin:xmax+1, ymin:ymax+1], where=selected_part)
@@ -85,7 +85,7 @@ def _init_objsel(state: dict, selection: NDArray) -> Tuple[int,int,int,int]:
         
         # background backup
         np.copyto(objdict['background'], state['grid'])
-        np.copyto(objdict['background'], 0, where=sel)
+        np.copyto(objdict['background'], 0, where=(sel>0))
 
         # position, active, parity initialize
         objdict['object_pos'] = (int(xmin), int(ymin)) 
@@ -93,7 +93,7 @@ def _init_objsel(state: dict, selection: NDArray) -> Tuple[int,int,int,int]:
         objdict['rotation_parity'] = 0
 
         # copy selection into selected obs
-        np.copyto(state['selected'], np.copy(sel))
+        np.copyto(state['selected'], np.copy(sel).astype(np.uint8))
 
         # return bounding box of selection
         return xmin, xmax, ymin, ymax
