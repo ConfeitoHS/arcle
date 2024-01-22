@@ -1,6 +1,10 @@
 # ARCLE - ARC Learning Environment
 
-ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for training on ARC(Abstraction and Reasoning Corpus) and ARC-like datasets.
+ARCLE is a RL environment for training [Abstraction and Reasoning Corpus](https://github.com/fchollet/ARC) and ARC-like datasets, built on [Farama Gymnasium](https://github.com/Farama-Foundation/Gymnasium).
+
+ARCLE implements several environments with various actions on editing grids of ARC, with **object-oriented grid operations**. Inspired by [O2ARC Interface](https://github.com/GIST-DSLab/O2ARC_V2) - the game-like human interface collecting human ARC solutions, ARCLE contains this interface as a RL environment, as well as the [testing interface given with ARC Dataset](https://github.com/fchollet/ARC/tree/master/apps) .
+
+Related Project - [Simon ARC Env](https://github.com/neoneye/simon-arc-env) (Dec 2023)
 
 ![arclegif](https://github.com/ConfeitoHS/arcle/assets/43498096/20add94a-43b5-4cd6-ad28-930153b7b174)
 ![statetrans](images/statetrans.png)
@@ -12,6 +16,14 @@ ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for trainin
 `pip install arcle`
 
 [PyPI Project Page](https://pypi.org/project/arcle/)
+
+## Available Environments
+
+| Env Name| Description | Latest Version |
+| --- | --- | --- |
+| `RawARCEnv` | Environment with actions only coloring, resizing to answer grid, and submit operations  | v0 |
+| `ARCEnv` | Implements browser-based testing interface of ARC, with coloring, flood-filling, copy and paste  | v0 |
+| `O2ARCv2Env` | Implements [O2ARCv2 Interface](https://bit.ly/O2ARC-GIST), an extension of `ARCEnv` containing Move, Rotate, Flip, Crop, ... | v0 |
 
 ## Changelogs
 
