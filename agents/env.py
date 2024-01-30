@@ -1,20 +1,11 @@
-
 from typing import List, SupportsInt, Tuple
-import ray
-from ray import rllib
-from ray.rllib.algorithms import ppo
-from ray.rllib.algorithms.ppo import PPOConfig
+
 from ray.rllib.env.apis.task_settable_env import TaskSettableEnv, TaskType
-
-from ray.tune.registry import register_env
-
-
 
 from arcle.envs import O2ARCv2Env
 from arcle.loaders import ARCLoader, Loader
 
 from gymnasium import spaces
-from gymnasium.wrappers import FilterObservation
 
 import numpy as np
 
@@ -61,22 +52,5 @@ class O2ARCBBoxEnv(O2ARCv2Env, TaskSettableEnv):
             'prob_index': task[1] 
         }
     
-    
-
     def post_adaptation(self):
         self.reset_options['adaptation'] = False
-
-# TODO: Create E-MAML with RLLib API
-# TODO: Make Custom Policy and Run PPO
-
-ray.init()
-
-def env_creator(config):
-    return FilterObservation(O2ARCBBoxEnv(max_trial=3),["input", "input_dim", "grid", "grid_dim", "clip", "clip_dim"])
-register_env('O2ARCBBoxEnv', env_creator)
-
-algo = PPOConfig().experimental(_disable_preprocessor_api = True).environment('O2ARCBBoxEnv').build()
-
-
-while True:
-    algo.train()
