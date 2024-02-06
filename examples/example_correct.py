@@ -6,8 +6,6 @@ import numpy as np
 
 env = gym.make('ARCLE/RawARCEnv-v0',render_mode='ansi')
 
-
-
 sels = [np.zeros((30,30)) for _ in range(4)]
 for i,(x,y) in enumerate([(3,2),(7,7)]):
     sels[i][x+1,y+1] = sels[i][x+1,y-1] = sels[i][x-1,y+1] = sels[i][x-1,y-1] = 1
@@ -29,6 +27,5 @@ for _ in range(1000):
     if term or trunc:
         obs, info = env.reset(options=option)
         ts = 0
-    
 
 env.close()

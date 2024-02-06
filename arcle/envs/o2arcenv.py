@@ -17,17 +17,17 @@ class O2ARCv2Env(AbstractARCEnv):
         super().init_state(initial_grid, options)
         
         add_dict = {
-            "selected": np.zeros((self.H,self.W), dtype=np.uint8),
-            "clip" : np.zeros((self.H,self.W),dtype= np.uint8),
-            "clip_dim" : (0, 0),
+            "selected": np.zeros((self.H,self.W), dtype=np.int8),
+            "clip" : np.zeros((self.H,self.W), dtype= np.int8),
+            "clip_dim" : np.zeros((2,), dtype=np.int8),
             "object_states": {
-                "active": 0, 
-                "object": np.zeros((self.H, self.W), dtype=np.uint8),
-                "object_sel": np.zeros((self.H, self.W), dtype=np.uint8),
-                "object_dim": (0,0),
-                "object_pos": (0,0), 
-                "background": np.zeros((self.H, self.W), dtype=np.uint8), 
-                "rotation_parity": 0,
+                "active": np.zeros((1,),dtype=np.int8), 
+                "object": np.zeros((self.H, self.W), dtype=np.int8),
+                "object_sel": np.zeros((self.H, self.W), dtype=np.int8),
+                "object_dim": np.zeros((2,), dtype=np.int8),
+                "object_pos": np.zeros((2,), dtype=np.int8), 
+                "background": np.zeros((self.H, self.W), dtype=np.int8), 
+                "rotation_parity": np.zeros((1,),dtype=np.int8),
             }
         }
 
@@ -46,19 +46,19 @@ class O2ARCv2Env(AbstractARCEnv):
         '''
 
         new_space_dict = {
-                "selected": spaces.Box(0,1,(self.H,self.W),dtype=np.uint8),
-                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
+                "selected": spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
+                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+                "clip_dim": spaces.Box(low=np.array([0,0]), high=np.array([self.H,self.W]), dtype=np.int8),
 
                 "object_states":spaces.Dict({
-                    "active": spaces.Discrete(2),
-                    "object": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                    "object_sel":  spaces.Box(0,1,(self.H,self.W),dtype=np.uint8),
-                    "object_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
-                    "object_pos": spaces.Tuple((spaces.Discrete(200,start=-100),spaces.Discrete(200,start=-100))), 
+                    "active": spaces.MultiBinary(1),
+                    "object": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+                    "object_sel":  spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
+                    "object_dim": spaces.Box(low=np.array([0,0]), high=np.array([self.H,self.W]), dtype=np.int8),
+                    "object_pos": spaces.Box(low=np.array([-128,-128]), high=np.array([127,127]), dtype=np.int8), 
 
-                    "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.uint8),
-                    "rotation_parity": spaces.Discrete(10),
+                    "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.int8),
+                    "rotation_parity": spaces.MultiBinary(1),
                 })
         }
 
@@ -68,7 +68,7 @@ class O2ARCv2Env(AbstractARCEnv):
     def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
-                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.uint8), # selection Mask
+                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.int8), # selection Mask
                 "operation": spaces.Discrete(action_count)
             }
         )

@@ -13,13 +13,13 @@ def reset_sel(function):
 
     It does this before calling function.
     ```
-        state['selected'] = np.zeros((H,W), dtype=np.uint8)
+        state['selected'] = np.zeros((H,W), dtype=np.int8)
         state['object_states']['active'] = False
     ```
     '''
     @wraps(function)
     def wrapper(state, action, **kwargs):
-        state['selected'] = np.zeros(state['input'].shape, dtype=np.uint8)
+        state['selected'] = np.zeros(state['input'].shape, dtype=np.int8)
         state['object_states']['active'] = False
         
         return function(state, action, **kwargs)
@@ -93,7 +93,7 @@ def _init_objsel(state: dict, selection: NDArray) -> Tuple[int,int,int,int]:
         objdict['rotation_parity'] = 0
 
         # copy selection into selected obs
-        np.copyto(state['selected'], np.copy(sel).astype(np.uint8))
+        np.copyto(state['selected'], np.copy(sel).astype(np.int8))
 
         # return bounding box of selection
         return xmin, xmax, ymin, ymax

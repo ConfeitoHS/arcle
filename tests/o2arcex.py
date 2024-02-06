@@ -12,10 +12,10 @@ class TestLoader(Loader):
         return ['']
 
     def parse(self, **kwargs) -> List[Tuple[List[NDArray], List[NDArray], List[NDArray], List[NDArray], Dict]]:
-        ti= np.zeros((30,30), dtype=np.uint8)
-        to = np.zeros((30,30), dtype=np.uint8)
-        ei = np.zeros((30,30), dtype=np.uint8)
-        eo = np.zeros((30,30), dtype=np.uint8)
+        ti= np.zeros((30,30), dtype=np.int8)
+        to = np.zeros((30,30), dtype=np.int8)
+        ei = np.zeros((30,30), dtype=np.int8)
+        eo = np.zeros((30,30), dtype=np.int8)
 
         ti[0:10, 0:10] = np.random.randint(0,10, size=[10,10])
         return [([ti],[to],[ei],[eo], {'desc': "just for test"})]

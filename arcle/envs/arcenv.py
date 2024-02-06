@@ -82,8 +82,8 @@ class ARCEnv(AbstractARCEnv):
         super().init_state(initial_grid, options)
         
         add_dict = {
-            "clip" : np.zeros((self.H,self.W),dtype= np.uint8),
-            "clip_dim" : (0, 0),
+            "clip" : np.zeros((self.H,self.W),dtype= np.int8),
+            "clip_dim" : np.zeros((2,), dtype=np.int8),
         }
 
         self.current_state.update(add_dict)
@@ -92,8 +92,8 @@ class ARCEnv(AbstractARCEnv):
         old_space = super().create_state_space()
 
         new_space_dict = {
-                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
+                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+                "clip_dim": spaces.Box(low=np.array([0,0]), high=np.array([self.H,self.W]), dtype=np.int8),
         }
 
         new_space_dict.update(old_space.spaces)
@@ -102,7 +102,7 @@ class ARCEnv(AbstractARCEnv):
     def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
-                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.uint8),
+                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
                 "operation": spaces.Discrete(action_count)
             }
         )

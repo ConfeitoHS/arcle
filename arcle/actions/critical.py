@@ -59,7 +59,7 @@ def crop_grid(state, action):
     xmin, xmax, ymin, ymax = _get_bbox(action['selection'])
     H = xmax-xmin+1
     W = ymax-ymin+1
-    patch = np.zeros((H,W),dtype=np.uint8)
+    patch = np.zeros((H,W),dtype=np.int8)
     np.copyto(dst=patch, src=state['grid'][xmin:xmax+1, ymin:ymax+1], where= np.logical_and(action['selection'][xmin:xmax+1, ymin:ymax+1],state['grid'][xmin:xmax+1, ymin:ymax+1]))
     state['grid'][:,:]=0
     state['grid'][0:H, 0:W] = patch # comment when test

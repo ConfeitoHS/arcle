@@ -120,20 +120,20 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     @abstractmethod
     def create_state_space(self) -> spaces.Dict:
         return spaces.Dict({
-            "trials_remain": spaces.Discrete(self.max_trial+2, start=-1),
-            "terminated": spaces.Discrete(2, start=0),
+            "trials_remain": spaces.Box(-1, self.max_trial, shape=(1,), dtype=np.int8),
+            "terminated": spaces.MultiBinary(1), # int8
 
-            "input": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-            "input_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
+            "input": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+            "input_dim": spaces.Box(low=np.array([1,1]), high=np.array([self.H,self.W]), dtype=np.int8),
 
-            "grid": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-            "grid_dim": spaces.Tuple((spaces.Discrete(self.H,start=1),spaces.Discrete(self.W,start=1))),
+            "grid": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+            "grid_dim": spaces.Box(low=np.array([1,1]), high=np.array([self.H,self.W]), dtype=np.int8),
         })
     
     @abstractmethod
     def create_action_space(self, action_count) -> spaces.Dict: 
         return spaces.Dict({
-                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.uint8),
+                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
                 "operation": spaces.Discrete(action_count)
         })
 
@@ -156,13 +156,14 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     def init_state(self, initial_grid: NDArray, options: Dict) -> None:
         isize = initial_grid.shape
         self.current_state = {
-            "trials_remain": self.max_trial,
-            "terminated": 0,
+            "trials_remain": np.array([self.max_trial],dtype=np.int8),
+            "terminated": np.array([0], dtype=np.int8),
+
             "input": np.pad(self.input_, [(0, self.H-isize[0]),(0, self.W-isize[1])], constant_values=0),
-            "input_dim": self.input_.shape,
+            "input_dim": np.array(self.input_.shape, dtype=np.int8),
 
             "grid": np.pad(initial_grid, [(0, self.H-isize[0]),(0, self.W-isize[1])],constant_values=0),
-            "grid_dim": isize
+            "grid_dim": np.array(isize, dtype=np.int8)
         }
 
     @abstractmethod 
