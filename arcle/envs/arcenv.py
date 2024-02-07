@@ -30,7 +30,7 @@ class RawARCEnv(AbstractARCEnv):
         
         def resize_to_answer(state, action):
             h, w = self.answer.shape
-            state['grid_dim'] = (h,w)
+            state['grid_dim'] = np.array([h,w],dtype=np.int8)
             state['grid'][h:,:] = 0
             state['grid'][:,w:] = 0
         
@@ -51,7 +51,7 @@ class RawARCEnv(AbstractARCEnv):
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
             return 0
-        if state['grid_dim'] == self.answer.shape:
+        if tuple(state['grid_dim']) == self.answer.shape:
             h,w = self.answer.shape
             if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
@@ -73,7 +73,7 @@ class RawARCEnv(AbstractARCEnv):
         self.info["steps"] = self.action_steps
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]) , self.truncated, self.info
+        return self.current_state, reward, bool(state["terminated"][0]) , self.truncated, self.info
 
 class ARCEnv(AbstractARCEnv):
     def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = 3, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
@@ -146,7 +146,7 @@ class ARCEnv(AbstractARCEnv):
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
             return 0
-        if state['grid_dim'] == self.answer.shape:
+        if tuple(state['grid_dim']) == self.answer.shape:
             h,w = self.answer.shape
             if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
@@ -169,7 +169,7 @@ class ARCEnv(AbstractARCEnv):
         self.info['submit_count'] = self.submit_count
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]), self.truncated, self.info
+        return self.current_state, reward, bool(state["terminated"][0]), self.truncated, self.info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])

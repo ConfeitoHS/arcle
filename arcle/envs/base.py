@@ -171,17 +171,17 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         return 0
 
     def submit(self, state, action) -> None:
-        if state["trials_remain"] > 0:
-            state["trials_remain"] -=1
+        if state["trials_remain"][0] > 0:
+            state["trials_remain"][0] -=1
             self.submit_count +=1
-            h,w = state["grid_dim"]
+            h,w = state["grid_dim"][0], state["grid_dim"][1]
             if self.answer.shape == (h,w) and np.all(self.answer==state["grid"][:h,:w]):
-                state["terminated"] = 1 # correct
+                state["terminated"][0] = 1 # correct
             if self.reset_on_submit:
                 self.init_state(self.input_, options=self.options)
 
-        if state["trials_remain"] == 0:
-            state["terminated"] = 1 # end 
+        if state["trials_remain"][0] == 0:
+            state["terminated"][0] = 1 # end 
 
     def render(self):
         if self.rendering is None and self.render_mode == "human":

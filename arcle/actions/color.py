@@ -5,7 +5,7 @@ from ..envs import AbstractARCEnv as AAE
 from numpy.typing import NDArray
 from typing import SupportsInt,Callable,Tuple
 
-def dfs(grid: NDArray, grid_dim: Tuple, point: Tuple) -> NDArray:
+def dfs(grid: NDArray[np.uint8], grid_dim: NDArray[np.uint8], point: Tuple) -> NDArray:
     
     dx = [-1,1,0,0]
     dy = [0,0,-1,1]

@@ -121,7 +121,7 @@ class O2ARCv2Env(AbstractARCEnv):
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
             return 0
-        if state['grid_dim'] == self.answer.shape:
+        if tuple(state['grid_dim']) == self.answer.shape:
             h,w = self.answer.shape
             if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
@@ -144,7 +144,7 @@ class O2ARCv2Env(AbstractARCEnv):
         self.info['submit_count'] = self.submit_count
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]), self.truncated, self.info
+        return self.current_state, reward, bool(state["terminated"][0]), self.truncated, self.info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])
