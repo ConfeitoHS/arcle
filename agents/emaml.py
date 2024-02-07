@@ -377,7 +377,7 @@ class EMAML(Algorithm):
 
         # 0. Sample tasks and assign
         worker_ids = self.workers.healthy_worker_ids()
-        tasks = self.workers.local_worker().env.sample_tasks(len(worker_ids))
+        tasks = local_worker.env.sample_tasks(len(worker_ids))
         task_map = dict(zip(worker_ids,tasks))
         def set_tasks(e, ctx):
             if ctx.worker_index in worker_ids:
@@ -397,19 +397,28 @@ class EMAML(Algorithm):
             # into sample batch and standardize adv
             adapt_batch = convert_ma_batch_to_sample_batch(adapt_batch)
             adapt_batch = standardize_fields(adapt_batch, ["advantages"])
-            adapt_batch.decompress_if_needed()
+            #adapt_batch.decompress_if_needed()
 
             # 2. preload and update policy individually (\phi_i -> \phi_i+1)
             worker.policy_map[DEFAULT_POLICY_ID].load_batch_into_buffer(adapt_batch, buffer_index=0)
             adapt_result = worker.foreach_policy(lambda p,pid: p.learn_on_loaded_batch())[0]
-            return adapt_result, adapt_batch.count
+            return adapt_result, adapt_batch
 
+        buf = []
+        split = []
+        
         for i in range(self.config['inner_adaptation_steps']):
 
             with self._timers[LEARN_ON_BATCH_TIMER]:
                 rs = self.workers.foreach_worker_with_id(inner_loop, local_worker=False)
-                for r,c in rs:
-                    logger.debug("Sampled %d per worker", c)
+                split_list = []
+                for r,b in rs:
+                    #logger.debug("Sampled %d per worker", b.count)
+                    #print(b.zero_padded, b.max_seq_len, b.time_major)
+                    buf.append(b)
+                    split_list.append(b.count)
+                logger.debug("Adaptation %d", i+1)
+                split.append(split_list)
 
             # TODO: let's collect reward here
         
@@ -420,31 +429,41 @@ class EMAML(Algorithm):
         logger.debug("Changed into Post-adaptation mode.")
 
         with self._timers[SAMPLE_TIMER]:
-            post_batches = synchronous_parallel_sample(worker_set=self.workers, max_agent_steps=self.config.train_batch_size)
-        post_batches = post_batches.as_multi_agent()
-        self._counters[NUM_AGENT_STEPS_SAMPLED] += post_batches.agent_steps()
-        self._counters[NUM_ENV_STEPS_SAMPLED] += post_batches.env_steps()
-        post_batches = standardize_fields(post_batches, ["advantages"])
-        # TODO: let's collect reward here
+            #post_batches = self.workers.foreach_worker(lambda w: w.sample(),local_worker=False)
+            post_batches = synchronous_parallel_sample(worker_set=self.workers, max_agent_steps=self.config.train_batch_size, concat=False)
+
+        # Convert multi-agent batches into single experiences
+        
+        split_list = []
+        for batch in post_batches:
+            b = convert_ma_batch_to_sample_batch(batch)
+            b = standardize_fields(b, ["advantages"])
+            self._counters[NUM_AGENT_STEPS_SAMPLED] += b.agent_steps()
+            self._counters[NUM_ENV_STEPS_SAMPLED] += b.env_steps()
+            #print(b.zero_padded, b.max_seq_len, b.time_major)
+            for k in b:
+                if k==SampleBatch.EPS_ID:
+                    b[k] = torch.tensor(b[k].astype(np.int64))
+                elif k==SampleBatch.INFOS:
+                    pass
+                else:
+                    b[k] = torch.tensor(b[k])
+            buf.append(b)
+            
+            split_list.append(b.count)
+            # TODO: let's collect reward here
+        split.append(split_list)
+        #logger.debug(split)
+        train_batch = concat_samples(buf)
+        train_batch["split"] = np.array(split) # it is neccesary in MAMLPolicy
+        
 
         # 4. [Outer] Meta-update step (\theta -> \theta')
         outer_info_builder = LearnerInfoBuilder()
-
-        # Convert multi-agent batches into single experiences
-        train_batch = []
-        sample_lens = []
-        #pids = []
-        for pid, batch in post_batches.policy_batches.items():
-            #pids.append(pid)
-            train_batch.append(batch)
-            sample_lens.append(batch.count)
-
-        train_batch = concat_samples(train_batch)
-        train_batch["split"] = sample_lens # it is neccesary in MAMLPolicy
-
+        
         for i in range(self.config.maml_optimizer_steps):
             # TODO: This is MAML update. let's add initial batches to modify as a E-MAML.
-            train_results = self.workers.local_worker().learn_on_batch(train_batch)
+            train_results = local_worker.learn_on_batch(train_batch)
             outer_info_builder.add_learn_on_batch_results(train_results)
 
         outer_train_info = outer_info_builder.finalize()
@@ -478,7 +497,7 @@ class EMAML(Algorithm):
                     "the VF loss by reducing vf_loss_coeff, or disabling "
                     "vf_share_layers.".format(policy_id, scaled_vf_loss, policy_loss)
                 )
-            # Warn about bad clipping configs.
+            """ # Warn about bad clipping configs.
             train_batch.policy_batches[policy_id].set_get_interceptor(None)
             mean_reward = train_batch.policy_batches[policy_id]["rewards"].mean()
             if (
@@ -492,12 +511,15 @@ class EMAML(Algorithm):
                     f" Consider increasing it for policy: {policy_id} to improve"
                     " value function convergence."
                 )
-
+ """
         self._counters[NUM_ENV_STEPS_TRAINED] += train_batch.count
         self._counters[NUM_AGENT_STEPS_TRAINED] += train_batch.agent_steps()
 
-        return {'inner_loop_info': inner_train_info, 'outer_loop_info': outer_train_info}
-    
+        return {'outer_loop_info': outer_train_info}
+
+
+
+# EMAML Policy Part
 import logging
 from typing import Dict, List, Type, Union
 
@@ -837,6 +859,7 @@ class MAMLTorchPolicy(ValueNetworkMixin, KLCoeffMixin, TorchPolicyV2):
         logits, state = model(train_batch)
         self.cur_lr = self.config["lr"]
 
+        # inner loop worker(idx!=0)
         if self.config["worker_index"]:
             self.loss_obj = WorkerLoss(
                 model=model,
@@ -855,10 +878,10 @@ class MAMLTorchPolicy(ValueNetworkMixin, KLCoeffMixin, TorchPolicyV2):
                 vf_loss_coeff=self.config["vf_loss_coeff"],
                 clip_loss=False,
             )
-        else:
+        else: # outer loop worker meta-update (idx==0)
             self.var_list = model.named_parameters()
 
-            # `split` may not exist yet (during test-loss call), use a dummy value.
+            # `split` may not exist yet (during test-loss call), use a dummy value. # 32!!!
             # Cannot use get here due to train_batch being a TrackingDict.
             if "split" in train_batch:
                 split = train_batch["split"]
@@ -870,6 +893,7 @@ class MAMLTorchPolicy(ValueNetworkMixin, KLCoeffMixin, TorchPolicyV2):
                 split_const = int(
                     train_batch["obs"].shape[0] // (split_shape[0] * split_shape[1])
                 )
+                
                 split = torch.ones(split_shape, dtype=int) * split_const
             self.loss_obj = MAMLLoss(
                 model=model,
@@ -895,6 +919,12 @@ class MAMLTorchPolicy(ValueNetworkMixin, KLCoeffMixin, TorchPolicyV2):
             )
 
         return self.loss_obj.loss
+    @override(TorchPolicyV2)
+    def get_batch_divisibility_req(self) -> int:
+        if self.config["worker_index"]:
+            return 1
+        
+        return self.config["inner_adaptation_steps"] * self.config["num_workers"]
 
     @override(TorchPolicyV2)
     def optimizer(
