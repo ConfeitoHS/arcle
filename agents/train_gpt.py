@@ -9,6 +9,7 @@ import ray
 from ray.rllib.env.apis.task_settable_env import TaskSettableEnv, TaskType
 from ray.tune.registry import register_env
 from ray.tune.logger import pretty_print
+from ray.rllib.models import ModelCatalog
 
 from arcle.envs import O2ARCv2Env
 from arcle.loaders import ARCLoader, Loader
@@ -21,14 +22,15 @@ from gymnasium.wrappers.flatten_observation import FlattenObservation
 
 from emaml import EMAML, EMAMLConfig
 from env import CustomO2ARCEnv, FilterO2ARC
-
+from models.GPTPolicy import GPTPolicy
+from models.bboxdist import AROPandBBox
 
 logging.basicConfig(level=logging.DEBUG)
 
 
 seed = 8182
 deterministic = True
-run_name = f"maml-crop-seed{seed}"
+run_name = f"maml-GPT-seed{seed}"
 
 random.seed(seed)
 np.random.seed(seed)
@@ -38,13 +40,16 @@ if deterministic:
 	torch.backends.cudnn.deterministic = True
 	torch.backends.cudnn.benchmark = False
 
+ModelCatalog.register_custom_action_dist('op-and-bbox',AROPandBBox)
+ModelCatalog.register_custom_model('gpt-policy',GPTPolicy)
+
 if __name__ == "__main__":
     #configs
-    n_cpus = 10
-    n_envs = 10
+    n_cpus = 2
+    n_envs = 2
     n_inner_steps = 20
     n_outer_steps = 5
-    n_batch = 1000
+    n_batch = 100
 
     l_rollout = 100
     l_episode = 100
@@ -52,22 +57,40 @@ if __name__ == "__main__":
 
     inner_lr = 1e-3
     outer_lr = 1e-4
-    discount = 0.90
-    vf_loss_coeff = 0.1
+    discount = 0.9
+    vf_loss_coeff = 0.5
 
     grad_clip = 10
-    fc_hiddens = [1024,1024,512,512,256,128]
+
+    model_config = {
+         "env": {  "grid_x": 30,
+            "grid_y": 30,
+            "num_colors": 10,
+            "num_actions": 35,
+            "use_arc": True,
+        },
+    "model": {
+            "n_layer": 8,
+            "n_head": 16,
+            "n_embd": 128,
+            "embd_pdrop": 0.1,
+            "resid_pdrop": 0.1,
+            "attn_pdrop": 0.1,
+        }
+    }
+
+    #fc_hiddens = [1024,1024,512,512,256,128]
 
     ray.init()
     def env_creator(config):
         env = CustomO2ARCEnv(max_trial=127)
         env = BBoxWrapper(env)
-        env = FilterO2ARC(env)
         env = FlattenObservation(env)
         env = TimeLimit(env, max_episode_steps=l_episode)
         return env
 
     register_env("O2ARCBBoxEnv", env_creator)
+    """
     wandb.login(key = '6411bae5ab591c488ef3a5ef3f1c6febbb9b768e')
     wandb.init(
         # set the wandb project where this run will be logged
@@ -81,13 +104,13 @@ if __name__ == "__main__":
         "tasks_parallel":n_envs, 
         "inner_steps": n_inner_steps, "outer_steps": n_outer_steps,
         "inner_lr": inner_lr, "outer_lr" : outer_lr,
-        "architecture": f"MLP{fc_hiddens}",
+        "architecture": f"GPTPolicy",
         "dataset": "FullARCTrainset",
         }
     )
-
+    """
     config = (EMAMLConfig()
-            .resources(num_gpus=1, num_cpus_per_worker=n_cpus/n_envs)
+            .resources(num_gpus=3,num_gpus_per_worker=0.2, num_cpus_per_worker=n_cpus/n_envs)
             .rollouts(num_rollout_workers=n_envs, rollout_fragment_length=l_rollout)
             .environment(env="O2ARCBBoxEnv")
             .training(gamma=discount, 
@@ -95,8 +118,9 @@ if __name__ == "__main__":
                         inner_adaptation_steps=n_inner_steps, maml_optimizer_steps=n_outer_steps,
                         grad_clip=grad_clip, train_batch_size=n_batch, 
                         vf_loss_coeff= vf_loss_coeff, model={
-                "fcnet_hiddens": fc_hiddens,
-                "fcnet_activation": "tanh",
+                            "custom_model": "gpt-policy",
+                            "custom_model_config": model_config,
+                            "custom_action_dist": "op-and-bbox",
             })
             
             )
@@ -150,7 +174,7 @@ if __name__ == "__main__":
         }, step=res['training_iteration'])
 
         
-        if epoch%10==0:
+        if epoch%5==0:
             save_res = algo.save(f'./agents/ckpts/{run_name}/epoch{epoch}/')
         epoch+=1
         
