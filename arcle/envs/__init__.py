@@ -1,6 +1,7 @@
 from .base import AbstractARCEnv
 from .arcenv import RawARCEnv, ARCEnv
 from .o2arcenv import O2ARCv2Env
+from .o2arcenv import O2ARCv2Env as O2ARCEnv
 from gymnasium.envs.registration import register
 
 register(
@@ -15,7 +16,7 @@ register(
 
 register(
     id='ARCLE/O2ARCEnv-v0',
-    entry_point='arcle.envs.o2arcenv:O2ARCv2Env'
+    entry_point='arcle.envs:O2ARCEnv'
 )
 
 register(
