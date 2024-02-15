@@ -14,6 +14,11 @@ register(
 )
 
 register(
+    id='ARCLE/O2ARCEnv-v0',
+    entry_point='arcle.envs.o2arcenv:O2ARCv2Env'
+)
+
+register(
     id='ARCLE/O2ARCv2Env-v0',
     entry_point='arcle.envs.o2arcenv:O2ARCv2Env'
 )
