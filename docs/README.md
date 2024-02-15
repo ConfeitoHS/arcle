@@ -22,7 +22,9 @@ Python >= 3.8
     - n-trial mode added. You canset maximum trials when you call `gym.make()` by putting argument `max_trial=num`. Unlimited trial mode is available when it is set by -1 (default).
     - Customizable `Submit` operation. It is defined in each env class as a method, not in a separated module.
         - You can specify boolean option `reset_on_submit` in `env.reset` (default=`False`)
-    
+    - Unify Type of observations into `np.uint8`
+    - Unify observation space into `Box` or `MultiBinary` to Flatten Observations Properly 
+
 - Bug fix
     - `FloodFill` operation without selection case fixed
     - `Paste` operation out-of-bound case fixed

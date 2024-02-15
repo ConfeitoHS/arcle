@@ -2,7 +2,6 @@
 
 ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for training on ARC(Abstraction and Reasoning Corpus) and ARC-like datasets.
 
-![arclegif](https://github.com/ConfeitoHS/arcle/assets/43498096/20add94a-43b5-4cd6-ad28-930153b7b174)
 ![statetrans](images/statetrans.png)
 
 ## Requirements

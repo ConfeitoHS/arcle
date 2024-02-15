@@ -2,10 +2,10 @@
 name = "arcle"
 version = "0.2.5.post4"
 description = "An ARC Learning Environment built on Gymnasium"
-authors = ["Hosung Lee <confeitohs@gmail.com>"]
+authors = ["Anonymous <xxxxxxxxxx@gmail.com>"]
 readme = "docs/README.md"
 license = "Apache-2.0"
-repository = "https://github.com/ConfeitoHS/arcle"
+repository = "https://anonymous.4open.science/r/arcle-6B7F"
 packages = [{include = "arcle"}]
 exclude = ["arcle/arcs/flask", "arcle/arcs/server"]
 classifiers = [
@@ -16,8 +16,7 @@ classifiers = [
 ]
 
 [tool.poetry.urls]
-"Homepage" = "https://github.com/ConfeitoHS/arcle"
-"Bug Tracker" = "https://github.com/ConfeitoHS/arcle/issues"
+"Homepage" = "https://anonymous.4open.science/r/arcle-6B7F"
 
 
 [tool.poetry.dependencies]
