@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arcle"
-version = "0.2.5.post4"
+version = "0.2.6"
 description = "An ARC Learning Environment built on Gymnasium"
 authors = ["Hosung Lee <confeitohs@gmail.com>"]
 readme = "docs/README.md"
@@ -23,7 +23,8 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8"
 pygame = "^2.5.1"
-gymnasium = "^0.29.0"
+gymnasium = ">=0.28.0"
+numpy = ">=1.24"
 
 [build-system]
 requires = ["poetry-core"]

@@ -5,3 +5,5 @@ build/
 *.egg-info
 .venv/
 dist/
+wandb
+agents/ckpts

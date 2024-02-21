@@ -1,6 +1,7 @@
-from arcle import loaders, envs
+from arcle import loaders, envs, wrappers
 
 __all__ = [
     'envs',
-    'loaders'
+    'loaders',
+    'wrappers'
 ]

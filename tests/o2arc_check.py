@@ -182,7 +182,7 @@ for idx, trace in enumerate(traces):
             break
             
         h,w = obs['grid_dim']
-        if  trace[i][3].shape != (h,w) or np.any(obs['grid'][:h,:w] != trace[i][3].astype(np.uint8)):
+        if  trace[i][3].shape != (h,w) or np.any(obs['grid'][:h,:w] != trace[i][3].astype(np.int8)):
             #print(obs['grid'][:h,:w], trace[i][3])
             #exit()
             #print('failure, last op was ',op)

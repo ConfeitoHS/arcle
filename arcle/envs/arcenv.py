@@ -30,7 +30,7 @@ class RawARCEnv(AbstractARCEnv):
         
         def resize_to_answer(state, action):
             h, w = self.answer.shape
-            state['grid_dim'] = (h,w)
+            state['grid_dim'] = np.array([h,w],dtype=np.int8)
             state['grid'][h:,:] = 0
             state['grid'][:,w:] = 0
         
@@ -43,15 +43,15 @@ class RawARCEnv(AbstractARCEnv):
     def init_state(self, initial_grid: NDArray, options: Dict) -> None:
         super().init_state(initial_grid, options)
     
-    def get_info(self) -> Dict:
-        return {
-            "steps": self.action_steps
-        }
+    def init_info(self) -> Dict:
+        info = super().init_info()
+        info["steps"] = 0
+        return info
 
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
             return 0
-        if state['grid_dim'] == self.answer.shape:
+        if tuple(state['grid_dim']) == self.answer.shape:
             h,w = self.answer.shape
             if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
@@ -69,11 +69,11 @@ class RawARCEnv(AbstractARCEnv):
         
         reward = self.reward(state)
         self.last_reward = reward
-        info = self.get_info()
         self.action_steps+=1
+        self.info["steps"] = self.action_steps
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]) , self.truncated, info
+        return self.current_state, reward, bool(state["terminated"][0]) , self.truncated, self.info
 
 class ARCEnv(AbstractARCEnv):
     def __init__(self, data_loader: Loader =ARCLoader(), max_grid_size: Tuple[SupportsInt, SupportsInt]=(30,30), colors: SupportsInt=10, max_trial: SupportsInt = 3, render_mode: str =None, render_size: Tuple[SupportsInt, SupportsInt]= None) -> None:
@@ -82,8 +82,8 @@ class ARCEnv(AbstractARCEnv):
         super().init_state(initial_grid, options)
         
         add_dict = {
-            "clip" : np.zeros((self.H,self.W),dtype= np.uint8),
-            "clip_dim" : (0, 0),
+            "clip" : np.zeros((self.H,self.W),dtype= np.int8),
+            "clip_dim" : np.zeros((2,), dtype=np.int8),
         }
 
         self.current_state.update(add_dict)
@@ -92,8 +92,8 @@ class ARCEnv(AbstractARCEnv):
         old_space = super().create_state_space()
 
         new_space_dict = {
-                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
+                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+                "clip_dim": spaces.Box(low=np.array([0,0]), high=np.array([self.H,self.W]), dtype=np.int8),
         }
 
         new_space_dict.update(old_space.spaces)
@@ -102,7 +102,7 @@ class ARCEnv(AbstractARCEnv):
     def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
-                "selection": spaces.MultiBinary((self.H,self.W)), # selection Mask
+                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
                 "operation": spaces.Discrete(action_count)
             }
         )
@@ -137,16 +137,16 @@ class ARCEnv(AbstractARCEnv):
         ops[26] = self.submit
         return ops
 
-    def get_info(self) -> Dict:
-        return {
-            "steps": self.action_steps,
-            "submit_count": self.submit_count,
-        }
+    def init_info(self) -> Dict:
+        info = super().init_info()
+        info["steps"] = 0
+        info["submit_count"] = 0
+        return info
 
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
             return 0
-        if state['grid_dim'] == self.answer.shape:
+        if tuple(state['grid_dim']) == self.answer.shape:
             h,w = self.answer.shape
             if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
@@ -164,11 +164,12 @@ class ARCEnv(AbstractARCEnv):
         state = self.current_state
         reward = self.reward(state)
         self.last_reward = reward
-        info = self.get_info()
         self.action_steps+=1
+        self.info['steps'] = self.action_steps
+        self.info['submit_count'] = self.submit_count
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]), self.truncated, info
+        return self.current_state, reward, bool(state["terminated"][0]), self.truncated, self.info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])

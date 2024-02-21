@@ -17,17 +17,17 @@ class O2ARCv2Env(AbstractARCEnv):
         super().init_state(initial_grid, options)
         
         add_dict = {
-            "selected": np.zeros((self.H,self.W), dtype=np.uint8),
-            "clip" : np.zeros((self.H,self.W),dtype= np.uint8),
-            "clip_dim" : (0, 0),
+            "selected": np.zeros((self.H,self.W), dtype=np.int8),
+            "clip" : np.zeros((self.H,self.W), dtype= np.int8),
+            "clip_dim" : np.zeros((2,), dtype=np.int8),
             "object_states": {
-                "active": 0, 
-                "object": np.zeros((self.H, self.W), dtype=np.uint8),
-                "object_sel": np.zeros((self.H, self.W), dtype=np.uint8),
-                "object_dim": (0,0),
-                "object_pos": (0,0), 
-                "background": np.zeros((self.H, self.W), dtype=np.uint8), 
-                "rotation_parity": 0,
+                "active": np.zeros((1,),dtype=np.int8), 
+                "object": np.zeros((self.H, self.W), dtype=np.int8),
+                "object_sel": np.zeros((self.H, self.W), dtype=np.int8),
+                "object_dim": np.zeros((2,), dtype=np.int8),
+                "object_pos": np.zeros((2,), dtype=np.int8), 
+                "background": np.zeros((self.H, self.W), dtype=np.int8), 
+                "rotation_parity": np.zeros((1,),dtype=np.int8),
             }
         }
 
@@ -46,19 +46,19 @@ class O2ARCv2Env(AbstractARCEnv):
         '''
 
         new_space_dict = {
-                "selected": spaces.MultiBinary((self.H,self.W)),
-                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                "clip_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
+                "selected": spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
+                "clip": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+                "clip_dim": spaces.Box(low=np.array([0,0]), high=np.array([self.H,self.W]), dtype=np.int8),
 
                 "object_states":spaces.Dict({
-                    "active": spaces.Discrete(2),
-                    "object": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.uint8),
-                    "object_sel":  spaces.MultiBinary((self.H,self.W)),
-                    "object_dim": spaces.Tuple((spaces.Discrete(self.H+1,start=0),spaces.Discrete(self.W+1,start=0))),
-                    "object_pos": spaces.Tuple((spaces.Discrete(200,start=-100),spaces.Discrete(200,start=-100))), 
+                    "active": spaces.MultiBinary(1),
+                    "object": spaces.Box(0,self.colors,(self.H,self.W),dtype=np.int8),
+                    "object_sel":  spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
+                    "object_dim": spaces.Box(low=np.array([0,0]), high=np.array([self.H,self.W]), dtype=np.int8),
+                    "object_pos": spaces.Box(low=np.array([-128,-128]), high=np.array([127,127]), dtype=np.int8), 
 
-                    "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.uint8),
-                    "rotation_parity": spaces.Discrete(10),
+                    "background": spaces.Box(0, self.colors, (self.H,self.W),dtype=np.int8),
+                    "rotation_parity": spaces.MultiBinary(1),
                 })
         }
 
@@ -68,7 +68,7 @@ class O2ARCv2Env(AbstractARCEnv):
     def create_action_space(self, action_count) -> Any:
         return spaces.Dict(
             {
-                "selection": spaces.MultiBinary((self.H,self.W)), # selection Mask
+                "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.int8), # selection Mask
                 "operation": spaces.Discrete(action_count)
             }
         )
@@ -112,16 +112,16 @@ class O2ARCv2Env(AbstractARCEnv):
         ops[34] = self.submit
         return ops
 
-    def get_info(self) -> Dict:
-        return {
-            "steps": self.action_steps,
-            "submit_count": self.submit_count,
-        }
+    def init_info(self) -> Dict:
+        info = super().init_info()
+        info["steps"] = 0
+        info["submit_count"] = 0
+        return info
 
     def reward(self, state) -> SupportsFloat:
         if not self.last_action_op == len(self.operations)-1:
             return 0
-        if state['grid_dim'] == self.answer.shape:
+        if tuple(state['grid_dim']) == self.answer.shape:
             h,w = self.answer.shape
             if np.all(state['grid'][0:h, 0:w] == self.answer):
                 return 1
@@ -139,15 +139,17 @@ class O2ARCv2Env(AbstractARCEnv):
         state = self.current_state
         reward = self.reward(state)
         self.last_reward = reward
-        info = self.get_info()
         self.action_steps+=1
+        self.info['steps'] = self.action_steps
+        self.info['submit_count'] = self.submit_count
         self.render()
 
-        return self.current_state, reward, bool(state["terminated"]), self.truncated, info
+        return self.current_state, reward, bool(state["terminated"][0]), self.truncated, self.info
 
     def transition(self, state: ObsType, action: ActType) -> None:
         op = int(action['operation'])
         self.operations[op](state,action)
+        
 
     def render_ansi(self):
         if self.rendering is None:

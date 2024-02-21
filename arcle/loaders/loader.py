@@ -14,8 +14,8 @@ class Loader(metaclass=ABCMeta):
     '''
     _pathlist = []
 
-    def __init__(self, **kwargs) -> None:
-
+    def __init__(self,rng: np.random.Generator=None, **kwargs) -> None:
+        self.rng = rng
         self._pathlist = self.get_path(**kwargs)
         self.data = self.parse(**kwargs)
         #self._train_input, self._train_output, self._test_input, self._test_output, self._problem_info = 
@@ -47,7 +47,10 @@ class Loader(metaclass=ABCMeta):
         sel = data_index
         max_index = len(self.data)
         if data_index is None:
-            sel = np.random.randint(0,max_index)
+            if self.rng is None:
+                sel = np.random.randint(0,max_index)
+            else:
+                sel = self.rng.integers(0,max_index)
 
         assert 0 <= sel < max_index, f'Problem indices should be in [0, {max_index}).'
         
@@ -97,12 +100,12 @@ class ARCLoader(Loader):
                 eo: List[NDArray] = []
 
                 for d in problem['train']:
-                    ti.append(np.array(d['input'],dtype=np.uint8))
-                    to.append(np.array(d['output'],dtype=np.uint8))
+                    ti.append(np.array(d['input'],dtype=np.int8))
+                    to.append(np.array(d['output'],dtype=np.int8))
 
                 for d in problem['test']:
-                    ei.append(np.array(d['input'],dtype=np.uint8))
-                    eo.append(np.array(d['output'],dtype=np.uint8))
+                    ei.append(np.array(d['input'],dtype=np.int8))
+                    eo.append(np.array(d['output'],dtype=np.int8))
 
                 desc = {'id': os.path.basename(fp.name).split('.')[0]}
                 dat.append((ti,to,ei,eo,desc))
@@ -140,12 +143,12 @@ class MiniARCLoader(Loader):
                 eo: List[NDArray] = []
 
                 for d in problem['train']:
-                    ti.append(np.array(d['input'],dtype=np.uint8))
-                    to.append(np.array(d['output'],dtype=np.uint8))
+                    ti.append(np.array(d['input'],dtype=np.int8))
+                    to.append(np.array(d['output'],dtype=np.int8))
                 
                 for d in problem['test']:
-                    ei.append(np.array(d['input'],dtype=np.uint8))
-                    eo.append(np.array(d['output'],dtype=np.uint8))
+                    ei.append(np.array(d['input'],dtype=np.int8))
+                    eo.append(np.array(d['output'],dtype=np.int8))
 
                 fns = os.path.basename(fp.name).split('_')
                 desc = {'id': fns[-1].split('.')[-2], 'description': ' '.join(fns[0:-1]).strip() }

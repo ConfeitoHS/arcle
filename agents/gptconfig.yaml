@@ -1,0 +1,14 @@
+env:
+  grid_x: 30
+  grid_y: 30
+  num_colors: 10
+  num_actions: 35
+  use_arc: True
+
+model:
+  n_layer: 8
+  n_head: 16
+  n_embd: 128
+  embd_pdrop: 0.1
+  resid_pdrop: 0.1
+  attn_pdrop: 0.1

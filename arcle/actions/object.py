@@ -13,14 +13,14 @@ def reset_sel(function):
 
     It does this before calling function.
     ```
-        state['selected'] = np.zeros((H,W), dtype=np.uint8)
-        state['object_states']['active'] = False
+        state['selected'] = np.zeros((H,W), dtype=np.int8)
+        state['object_states']['active'][0] = 0
     ```
     '''
     @wraps(function)
     def wrapper(state, action, **kwargs):
-        state['selected'] = np.zeros(state['input'].shape, dtype=np.uint8)
-        state['object_states']['active'] = False
+        state['selected'] = np.zeros(state['input'].shape, dtype=np.int8)
+        state['object_states']['active'][0] = 0
         
         return function(state, action, **kwargs)
     return wrapper
@@ -74,8 +74,8 @@ def _init_objsel(state: dict, selection: NDArray) -> Tuple[int,int,int,int]:
 
         
         # wipe object and set a new object from selected pixels
-        objdict['object_dim'] = (h, w)
-        selected_part = sel[xmin:xmax+1, ymin:ymax+1]
+        objdict['object_dim'][:] = (h, w)
+        selected_part = sel[xmin:xmax+1, ymin:ymax+1] >0
 
         objdict['object'][:, :] = 0 
         np.copyto(objdict['object'][0:h,0:w], state['grid'][xmin:xmax+1, ymin:ymax+1], where=selected_part)
@@ -85,22 +85,22 @@ def _init_objsel(state: dict, selection: NDArray) -> Tuple[int,int,int,int]:
         
         # background backup
         np.copyto(objdict['background'], state['grid'])
-        np.copyto(objdict['background'], 0, where=sel)
+        np.copyto(objdict['background'], 0, where=(sel>0))
 
         # position, active, parity initialize
-        objdict['object_pos'] = (int(xmin), int(ymin)) 
-        objdict['active'] = 1
-        objdict['rotation_parity'] = 0
+        objdict['object_pos'][:] = (int(xmin), int(ymin)) 
+        objdict['active'][0] = 1
+        objdict['rotation_parity'][0] = 0
 
         # copy selection into selected obs
-        np.copyto(state['selected'], np.copy(sel))
+        np.copyto(state['selected'], np.copy(sel).astype(np.int8))
 
         # return bounding box of selection
         return xmin, xmax, ymin, ymax
     
 
     # when object selection was active without new selection, continue with prev objsel
-    elif objdict['active']: 
+    elif objdict['active'][0]: 
         # gives previous bounding pox
         x, y = objdict['object_pos']
         h, w = objdict['object_dim']
@@ -170,7 +170,7 @@ def gen_rotate(k=1):
 
     Action Space Requirements (key: type) : (`selection`: NDArray)  
 
-    State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`objsel`: NDArray), (`objsel_bg`: NDArray), (`objsel_active`: Boolean), (`objsel_coord`: Tuple), (`objsel_rot`: Integer)
+    State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`object_states`: Dict)
     '''
     assert 0<k<4
 
@@ -190,21 +190,21 @@ def gen_rotate(k=1):
             cx = (xmax + xmin) *0.5
             cy = (ymax + ymin) *0.5
             x,y = objdict['object_pos']
-            objdict['object_pos'] = ( int(np.floor(cx-cy+y)), int(np.floor(cy-cx+x))) #left-top corner will be diagonally swapped
-            objdict['object_dim'] = (w,h)
+            objdict['object_pos'][:] = ( int(np.floor(cx-cy+y)), int(np.floor(cy-cx+x))) #left-top corner will be diagonally swapped
+            objdict['object_dim'][:] = (w,h)
             
 
         else: # ill-posed rotation. Manually setted
             cx = (xmax + xmin) *0.5
             cy = (ymax + ymin) *0.5
-            objdict['rotation_parity'] +=k
-            objdict['rotation_parity'] %=2
+            objdict['rotation_parity'][0] +=k
+            objdict['rotation_parity'][0] %=2
             sig = (k+2)%4-2
-            mod = 1-objdict['rotation_parity']
+            mod = 1-objdict['rotation_parity'][0]
             mx = min(  cx+sig*(cy-ymin) , cx+sig*(cy-ymax) )+mod
             my = min(  cy-sig*(cx-xmin) , cy-sig*(cx-xmax) )+mod
-            objdict['object_pos'] = (int(np.floor(mx)),int(np.floor(my)))
-            objdict['object_dim'] = (w,h)
+            objdict['object_pos'][:] = (int(np.floor(mx)),int(np.floor(my)))
+            objdict['object_dim'][:] = (w,h)
             
         
         _pad_assign(objdict['object'], np.rot90(objdict['object'][:h,:w],k=k))
@@ -221,7 +221,7 @@ def gen_move(d=0):
 
     Action Space Requirements (key: type) : (`selection`: NDArray)  
 
-    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`objsel`: NDArray), (`objsel_bg`: NDArray), (`objsel_active`: Boolean), (`objsel_coord`: Tuple)
+    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`object_states`: Dict)
     '''
     assert 0<= d <4
     dirX = [-1, +1, 0, 0]
@@ -235,7 +235,7 @@ def gen_move(d=0):
             return
 
         x, y = state['object_states']['object_pos']
-        state['object_states']['object_pos'] = (int(x + dirX[d]), int(y + dirY[d]))
+        state['object_states']['object_pos'][:] = (int(x + dirX[d]), int(y + dirY[d]))
         _apply_patch(state)
         _apply_sel(state)
         
@@ -248,7 +248,7 @@ def gen_flip(axis:str = "H"):
 
     Action Space Requirements (key: type) : (`selection`: NDArray)  
 
-    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`objsel`: NDArray), (`objsel_bg`: NDArray), (`objsel_active`: Boolean), (`objsel_coord`: Tuple)
+    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`selected`: NDArray), (`object_states`: Dict)
     '''
     
     
@@ -284,7 +284,7 @@ def gen_copy(source="I"):
 
     Action Space Requirements (key: type) : (`selection`: NDArray)
 
-    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`clip`: NDArray), (`clip_dim`: Tuple)
+    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), (`clip`: NDArray), (`clip_dim`: NDArray)
     '''
     assert source in ["I", "O"], "Invalid Source grid"
     srckey = 'input' if source=="I" else 'grid'
@@ -305,7 +305,7 @@ def gen_copy(source="I"):
         w = ymax-ymin+1
 
         state['clip'][:,:] = 0
-        state['clip_dim'] = (h,w)
+        state['clip_dim'][:] = (h,w)
 
         src_grid = state[srckey][xmin:xmax+1, ymin:ymax+1]
         np.copyto(state['clip'][:h, :w], src_grid, \
@@ -320,7 +320,7 @@ def gen_paste(paste_blank = False):
 
         Action Space Requirements (key: type) : (`selection`: NDArray)
 
-        Class State Requirements (key: type) :  (`grid`: NDArray), (`grid_dim`: NDArray), (`clip`: NDArray), (`clip_dim`: Tuple)
+        Class State Requirements (key: type) :  (`grid`: NDArray), (`grid_dim`: NDArray), (`clip`: NDArray), (`clip_dim`: NDArray)
         '''
         sel = action["selection"]
         if not np.any(sel>0) : # no location specified

@@ -22,10 +22,10 @@ def copy_from_input(state, action):
     
     Action Space Requirements (key: type) : None
 
-    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: Tuple), 
+    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), 
     '''
 
-    state['grid_dim'] = state['input_dim']
+    state['grid_dim'] = np.copy(state['input_dim'])
     state['grid'][:, :] = state['input']
     
 def resize_grid(state, action):
@@ -34,7 +34,7 @@ def resize_grid(state, action):
     
     Action Space Requirements (key: type) : (`selection`: NDArray)
 
-    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: Tuple), 
+    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), 
     '''
     if not np.any(action['selection']):
         return
@@ -43,7 +43,7 @@ def resize_grid(state, action):
     h = xmax-xmin+1
     w = ymax-ymin+1
     state['grid'][:, :] = 0
-    state['grid_dim'] = (h,w)
+    state['grid_dim'][:] = (h,w)
     
 def crop_grid(state, action):
     '''
@@ -51,7 +51,7 @@ def crop_grid(state, action):
     
     Action Space Requirements (key: type) : (`selection`: NDArray)
 
-    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: Tuple), 
+    Class State Requirements (key: type) : (`grid`: NDArray), (`grid_dim`: NDArray), 
     '''
     if not np.any(action['selection']):
         return
@@ -59,9 +59,9 @@ def crop_grid(state, action):
     xmin, xmax, ymin, ymax = _get_bbox(action['selection'])
     H = xmax-xmin+1
     W = ymax-ymin+1
-    patch = np.zeros((H,W),dtype=np.uint8)
+    patch = np.zeros((H,W),dtype=np.int8)
     np.copyto(dst=patch, src=state['grid'][xmin:xmax+1, ymin:ymax+1], where= np.logical_and(action['selection'][xmin:xmax+1, ymin:ymax+1],state['grid'][xmin:xmax+1, ymin:ymax+1]))
     state['grid'][:,:]=0
     state['grid'][0:H, 0:W] = patch # comment when test
-    state['grid_dim'] = (H,W)
+    state['grid_dim'][:] = (H,W)
     
