@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arcle"
-version = "0.2.5.post4"
+version = "0.2.6"
 description = "An ARC Learning Environment built on Gymnasium"
 authors = ["Hosung Lee <confeitohs@gmail.com>"]
 readme = "docs/README.md"

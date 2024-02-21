@@ -15,8 +15,22 @@ ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for trainin
 
 ## Changelogs
 
+#### 0.2.6
+- Env Changes
+    - **`O2ARCv2Env` is accessible via `O2ARCEnv` or `O2ARCEnv-v2`.**
+    - Unify type of observations into `np.int8` (that were previously `np.uint8`)
+    - Unify observation space into a dictionary of `Box` or `MultiBinary` to flatten observations properly by Gymnasium APIs
+    - Remove over-conditioned (`@abstractmethod`) requirements of `AbstractARCEnv`. Now user must only override `create_operations` only.
+
+- **Added action wrappers** (`BBoxWrapper`, `PointWrapper`) to change `selection` to bounding box selection or one-point selection.
+- `Loader` now supports definable random number generator.
+- Orginized examples
+
+- Bug Fix
+    - Fixed `terminated` is not emitted when `max_trial` is infinity (-1)
+
 #### 0.2.5
-- Python 3.8 Support (minimum requirements of Gymnasium)
+- Python 3.8 Support (minimum requirement of Gymnasium)
 - Env Changes
     - **Rename `ARCEnv` into `RawARCEnv` in this version.**
     - **Removed `MiniARCEnv`. Please use `RawARCEnv` with `loader=MiniARCLoader()` instead.**
@@ -27,8 +41,6 @@ ARCLE is a lightweight Gymnasium (previously OpenAI Gym) environment for trainin
     - n-trial mode added. You canset maximum trials when you call `gym.make()` by putting argument `max_trial=num`. Unlimited trial mode is available when it is set by -1 (default).
     - Customizable `Submit` operation. It is defined in each env class as a method, not in a separated module.
         - You can specify boolean option `reset_on_submit` in `env.reset` (default=`False`)
-    - Unify Type of observations into `np.uint8`
-    - Unify observation space into `Box` or `MultiBinary` to Flatten Observations Properly 
     
 - Bug fix
     - `FloodFill` operation without selection case fixed

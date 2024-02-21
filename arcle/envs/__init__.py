@@ -15,7 +15,7 @@ register(
 )
 
 register(
-    id='ARCLE/O2ARCEnv-v0',
+    id='ARCLE/O2ARCEnv-v2',
     entry_point='arcle.envs:O2ARCEnv'
 )
 

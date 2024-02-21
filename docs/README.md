@@ -9,6 +9,19 @@ Python >= 3.8
 `pip install arcle`
 
 ## Changelogs
+#### 0.2.6
+- Env Changes
+    - **`O2ARCv2Env` is accessible via `O2ARCEnv` or `O2ARCEnv-v2`.**
+    - Unify type of observations into `np.int8` (that were previously `np.uint8`)
+    - Unify observation space into a dictionary of `Box` or `MultiBinary` to flatten observations properly by Gymnasium APIs
+    - Remove over-conditioned (`@abstractmethod`) requirements of `AbstractARCEnv`. Now user must only override `create_operations` only.
+
+- **Added action wrappers** (`BBoxWrapper`, `PointWrapper`) to change `selection` to bounding box selection or one-point selection.
+- `Loader` now supports definable random number generator.
+- Orginized examples
+
+- Bug Fix
+    - Fixed `terminated` is not emitted when `max_trial` is infinity (-1)
 
 #### 0.2.5
 - Python 3.8 Support (minimum requirements of Gymnasium)

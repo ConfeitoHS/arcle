@@ -117,7 +117,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
 
         return obs, self.info
     
-    @abstractmethod
+    
     def create_state_space(self) -> spaces.Dict:
         return spaces.Dict({
             "trials_remain": spaces.Box(-1, self.max_trial, shape=(1,), dtype=np.int8),
@@ -130,7 +130,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             "grid_dim": spaces.Box(low=np.array([1,1]), high=np.array([self.H,self.W]), dtype=np.int8),
         })
     
-    @abstractmethod
+    
     def create_action_space(self, action_count) -> spaces.Dict: 
         return spaces.Dict({
                 "selection": spaces.Box(0,1,(self.H,self.W),dtype=np.int8),
@@ -141,7 +141,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
     def create_operations(self) -> List[Callable]:
         pass
 
-    @abstractmethod
+    
     def init_info(self) -> Dict:
         isize = self.input_.shape
         osize = self.answer.shape
@@ -152,7 +152,6 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
             "answer_dim": osize,
         }
 
-    @abstractmethod
     def init_state(self, initial_grid: NDArray, options: Dict) -> None:
         isize = initial_grid.shape
         self.current_state = {
@@ -171,7 +170,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         return 0
 
     def submit(self, state, action) -> None:
-        if state["trials_remain"][0] > 0:
+        if state["trials_remain"][0] !=0:
             state["trials_remain"][0] -=1
             self.submit_count +=1
             h,w = state["grid_dim"][0], state["grid_dim"][1]
