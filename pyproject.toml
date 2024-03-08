@@ -26,6 +26,10 @@ pygame = "^2.5.1"
 gymnasium = ">=0.28.0"
 numpy = ">=1.24"
 
+[tool.poetry.group.docs.dependencies]
+sphinx = "7.1.2"
+pydata-sphinx-theme = "0.15.2"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
