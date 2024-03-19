@@ -1,1 +1,3 @@
-from . import color, critical, object
+from .color import *
+from .critical import *
+from .object import *
