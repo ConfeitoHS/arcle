@@ -43,7 +43,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         data_loader: Loader,
         max_grid_size: Tuple[int, int],
         colors: int,
-        max_trial: int = -1,
+        max_trial: int = 127,
         render_mode: Optional[str] = None,
         render_size: Optional[Tuple[int, int]] = None,
     ) -> None:
@@ -140,7 +140,7 @@ class AbstractARCEnv(gym.Env, metaclass=ABCMeta):
         return spaces.Dict(
             {
                 "trials_remain": spaces.Box(
-                    -1, self.max_trial, shape=(1,), dtype=np.int8
+                    0, self.max_trial, shape=(1,), dtype=np.int8
                 ),
                 "terminated": spaces.MultiBinary(1),  # int8
                 "input": spaces.Box(0, self.colors, (self.H, self.W), dtype=np.int8),

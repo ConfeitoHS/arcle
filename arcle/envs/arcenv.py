@@ -10,14 +10,9 @@ from typing import (
     Callable,
     List,
     Tuple,
-    SupportsFloat,
-    SupportsInt,
-    SupportsIndex,
     Any,
-    overload,
 )
 from numpy.typing import NDArray
-from copy import deepcopy
 
 from ..loaders import Loader, ARCLoader
 from ..typing import Operation, StateType, ActionType
@@ -31,7 +26,7 @@ class RawARCEnv(AbstractARCEnv):
         data_loader: Loader = ARCLoader(),
         max_grid_size: Tuple[int, int] = (30, 30),
         colors: int = 10,
-        max_trial: int = -1,
+        max_trial: int = 127,
         render_mode: Optional[str] = None,
         render_size: Tuple[int, int] | None = None,
     ) -> None:
@@ -111,17 +106,17 @@ class ARCEnv(AbstractARCEnv):
     def __init__(
         self,
         data_loader: Loader = ARCLoader(),
-        max_grid_size: Tuple[SupportsInt, SupportsInt] = (30, 30),
-        colors: SupportsInt = 10,
-        max_trial: SupportsInt = 3,
-        render_mode: str = None,
-        render_size: Tuple[SupportsInt, SupportsInt] = None,
+        max_grid_size: Tuple[int, int] = (30, 30),
+        colors: int = 10,
+        max_trial: int = -1,
+        render_mode: Optional[str] = None,
+        render_size: Optional[Tuple[int, int]] = None,
     ) -> None:
         super().__init__(
             data_loader, max_grid_size, colors, max_trial, render_mode, render_size
         )
 
-    def init_state(self, initial_grid: NDArray, options: Dict) -> None:
+    def init_state(self, initial_grid: NDArray, options: Optional[Dict]) -> None:
         super().init_state(initial_grid, options)
 
         add_dict = {
@@ -155,9 +150,9 @@ class ARCEnv(AbstractARCEnv):
     def create_operations(self) -> List[Callable[..., Any]]:
         from ..actions.object import gen_copy, gen_paste
         from ..actions.color import gen_color, gen_flood_fill
-        from ..actions.critical import copy_from_input, reset_grid, resize_grid
+        from ..actions.critical import copy_from_input, reset_grid, resize_grid, no_op
 
-        ops = [None] * 35
+        ops: List[Operation] = [no_op] * 35
 
         # color ops (20)
         ops[0:10] = [gen_color(i) for i in range(10)]
@@ -183,7 +178,9 @@ class ARCEnv(AbstractARCEnv):
         info["submit_count"] = 0
         return info
 
-    def reward(self, state) -> SupportsFloat:
+    def reward(self, state: Optional[StateType] = None) -> float:
+        if state is None:
+            return 0
         if not self.last_action_op == len(self.operations) - 1:
             return 0
         if tuple(state["grid_dim"]) == self.answer.shape:
@@ -192,7 +189,7 @@ class ARCEnv(AbstractARCEnv):
                 return 1
         return 0
 
-    def step(self, action: ActType):
+    def step(self, action: ActionType):
 
         operation = int(action["operation"])
 
@@ -217,7 +214,7 @@ class ARCEnv(AbstractARCEnv):
             self.info,
         )
 
-    def transition(self, state: ObsType, action: ActType) -> None:
+    def transition(self, state: StateType, action: ActionType) -> None:
         op = int(action["operation"])
         self.operations[op](state, action)
 

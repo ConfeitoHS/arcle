@@ -1,7 +1,7 @@
 import arcle
 import gymnasium as gym
 
-env = gym.make('ARCLE/O2ARCEnv', render_mode='ansi')
+env = gym.make("ARCLE/O2ARCEnv", render_mode="ansi")
 obs, info = env.reset()
 
 for _ in range(1000):
