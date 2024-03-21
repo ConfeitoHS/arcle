@@ -11,6 +11,8 @@ build:
   tools:
     python: "3.11"
   jobs:
+    pre_build:
+      - sphinx-apidoc -f -o docs/source ./arcle
     post_create_environment:
       - pip install poetry=="1.7.1"
       - poetry config virtualenvs.create false
