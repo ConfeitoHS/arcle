@@ -1,8 +1,9 @@
 # ARCLE - ARC Learning Environment
+ARCLE is a RL environment for training [Abstraction and Reasoning Corpus](https://github.com/fchollet/ARC) and ARC-like datasets, built on Farama [Gymnasium](https://github.com/Farama-Foundation/Gymnasium).
 
-ARCLE is a RL environment for training [Abstraction and Reasoning Corpus](https://github.com/fchollet/ARC) and ARC-like datasets, built on [Farama Gymnasium](https://github.com/Farama-Foundation/Gymnasium).
+ARCLE implements several environments with various actions on editing grids of ARC, with **object-oriented grid operations**. Inspired by [O2ARC Interface](https://github.com/GIST-DSLab/O2ARC_V2), [O2ARC 3.0](https://o2arc.com) - the game-like human interface collecting human ARC solutions, ARCLE contains this interface as a RL environment, as well as the [testing interface](https://github.com/fchollet/ARC/tree/master/apps) given with ARC Dataset.
 
-ARCLE implements several environments with various actions on editing grids of ARC, with **object-oriented grid operations**. Inspired by [O2ARC Interface](https://github.com/GIST-DSLab/O2ARC_V2) - the game-like human interface collecting human ARC solutions, ARCLE contains this interface as a RL environment, as well as the [testing interface given with ARC Dataset](https://github.com/fchollet/ARC/tree/master/apps) .
+*Our work is presented at [CoLLAs 2024](https://lifelong-ml.cc/Conferences/2024)!* This paper contains initial experiments equipping ARCLE with PPO-optimized pixel-wise transformer on small grid pairs, in addition to a detailed description of ARCLE. Check out our [Paper](https://arxiv.org/abs/2407.20806).
 
 Related Project - [Simon ARC Env](https://github.com/neoneye/simon-arc-env) (Dec 2023)
 
