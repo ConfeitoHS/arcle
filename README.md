@@ -3,14 +3,14 @@ ARCLE is a RL environment for training [Abstraction and Reasoning Corpus](https:
 
 ARCLE implements several environments with various actions on editing grids of ARC, with **object-oriented grid operations**. Inspired by [O2ARC Interface](https://github.com/GIST-DSLab/O2ARC_V2), [O2ARC 3.0](https://o2arc.com) - the game-like human interface collecting human ARC solutions, ARCLE contains this interface as a RL environment, as well as the [testing interface](https://github.com/fchollet/ARC/tree/master/apps) given with ARC Dataset.
 
-*Our work is presented at [CoLLAs 2024](https://lifelong-ml.cc/Conferences/2024)!* This paper contains initial experiments equipping ARCLE with PPO-optimized pixel-wise transformer on small grid pairs, in addition to a detailed description of ARCLE. Check out our [Paper](https://arxiv.org/abs/2407.20806).
-
-**Related Project**
-[Simon ARC Env](https://github.com/neoneye/simon-arc-env) (Dec 2023)
-[RL Algorithms](https://github.com/GIST-DSLab/RL_Algorithms.git) (May 2024)
+***Our work is presented at [CoLLAs 2024](https://lifelong-ml.cc/Conferences/2024)!*** This paper contains initial experiments equipping ARCLE with PPO-optimized pixel-wise transformer on small grid pairs, in addition to a detailed description of ARCLE. Check out our [Paper](https://arxiv.org/abs/2407.20806).
 
 ![arclegif](https://github.com/ConfeitoHS/arcle/assets/43498096/20add94a-43b5-4cd6-ad28-930153b7b174)
 ![statetrans](images/statetrans.png)
+
+### Related Projects
+- [Simon ARC Env](https://github.com/neoneye/simon-arc-env) (Dec 2023): another ARC RL environment
+- [RL Algorithms](https://github.com/GIST-DSLab/RL_Algorithms.git) (May 2024): DreamerV3, PPO working on ARCLE environments
 
 ## Requirements
 `Python >= 3.8`
