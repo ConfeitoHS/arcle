@@ -5,7 +5,9 @@ ARCLE implements several environments with various actions on editing grids of A
 
 *Our work is presented at [CoLLAs 2024](https://lifelong-ml.cc/Conferences/2024)!* This paper contains initial experiments equipping ARCLE with PPO-optimized pixel-wise transformer on small grid pairs, in addition to a detailed description of ARCLE. Check out our [Paper](https://arxiv.org/abs/2407.20806).
 
-Related Project - [Simon ARC Env](https://github.com/neoneye/simon-arc-env) (Dec 2023)
+**Related Project**
+[Simon ARC Env](https://github.com/neoneye/simon-arc-env) (Dec 2023)
+[RL Algorithms](https://github.com/GIST-DSLab/RL_Algorithms.git) (May 2024)
 
 ![arclegif](https://github.com/ConfeitoHS/arcle/assets/43498096/20add94a-43b5-4cd6-ad28-930153b7b174)
 ![statetrans](images/statetrans.png)
