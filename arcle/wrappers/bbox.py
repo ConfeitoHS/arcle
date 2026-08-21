@@ -9,6 +9,8 @@ import numpy as np
 class BBoxWrapper(gym.ActionWrapper):
     def __init__(self, env: Env):
         super().__init__(env)
+        self.H, self.W = env.action_space['selection'].shape
+        self.operations = getattr(env, 'operations', [None] * env.action_space['operation'].n)
         self.action_space = spaces.Tuple(
             (
                 spaces.Discrete(self.H),
@@ -32,6 +34,8 @@ class BBoxWrapper(gym.ActionWrapper):
 class PointWrapper(gym.ActionWrapper):
     def __init__(self, env: Env):
         super().__init__(env)
+        self.H, self.W = env.action_space['selection'].shape
+        self.operations = getattr(env, 'operations', [None] * env.action_space['operation'].n)
         self.action_space = spaces.Tuple(
             (
                 spaces.Discrete(self.H),
